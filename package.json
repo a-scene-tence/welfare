@@ -1,0 +1,43 @@
+{
+  "name": "welfare",
+  "version": "0.1.0",
+  "private": true,
+  "description": "대한민국 공공 복지 매칭 에이전트",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:appsintoss": "NEXT_PUBLIC_TARGET=appsintoss next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "analyze": "ANALYZE=true next build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@hookform/resolvers": "^3.9.1",
+    "clsx": "^2.1.1",
+    "gray-matter": "^4.0.3",
+    "next": "^15.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.54.0",
+    "react-markdown": "^9.0.1",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.0",
+    "tailwind-merge": "^2.5.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@next/bundle-analyzer": "^15.0.3",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.6"
+  },
+  "packageManager": "pnpm@10.33.0"
+}

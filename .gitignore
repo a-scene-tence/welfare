@@ -1,0 +1,30 @@
+node_modules/
+.next/
+out/
+dist/
+.pnpm-store/
+
+# env
+.env
+.env*.local
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# tests
+coverage/
