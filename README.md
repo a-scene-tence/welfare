@@ -16,13 +16,14 @@
 - 3-소스 교차 검증 + 모호 시 129 안내 강제
 - 가구원수·합산 소득 → 기준 중위소득 % 자동 계산
 - 입력값 비저장(서버 메모리만), 동의 시 비식별 처리 후 30일 보관
-- 공급자 비종속(Anthropic/OpenAI/Gemini 어댑터, ENV로 스왑)
+- 공급자 비종속(Upstage/Anthropic/OpenAI/Gemini 어댑터, ENV로 스왑)
 - 앱인토스(App-in-Toss) 미니앱 호환을 고려한 가벼운 번들과 외부 링크 어댑터
 
 ## 기술 스택
 
 - Next.js 15 App Router · TypeScript · Tailwind CSS
-- Anthropic Claude API (1차 구현, web_search 도구 + prompt caching)
+- LLM: **Upstage Solar**(기본, 한국어 특화·무료 티어) / Anthropic Claude / OpenAI / Gemini
+- 웹 검색: Anthropic은 네이티브 `web_search`, 그 외 공급자는 Tavily(무료 1000회/월) function tool
 - Zod · react-hook-form · react-markdown(rehype-sanitize)
 - 배포: Vercel(Hobby, 한국 리전 `icn1`)
 - (선택) Vercel Postgres — opt-in 비식별 대화 이력 저장
@@ -58,22 +59,34 @@ src/
 ```bash
 pnpm install
 cp .env.example .env.local
-# 최소 ANTHROPIC_API_KEY=sk-ant-... 입력
+# 기본 공급자(Upstage) 사용 시 최소:
+#   LLM_PROVIDER=upstage
+#   UPSTAGE_API_KEY=up-...        # https://console.upstage.ai → API Keys
+#   TAVILY_API_KEY=tvly-...       # (권장) https://app.tavily.com → API Keys
 pnpm dev
 # http://localhost:3000
 ```
 
 타입 검사: `pnpm typecheck` · 빌드: `pnpm build` · 번들 분석: `pnpm analyze`
 
+### LLM 공급자 선택
+
+| 공급자 | 한국어 | 비용 | 웹 검색 | 비고 |
+|---|---|---|---|---|
+| **Upstage Solar** (기본) | ⭐⭐⭐⭐ | 무료 티어(`solar-pro2`) | Tavily function tool | OpenAI 호환, console.upstage.ai 가입 |
+| Anthropic Claude | ⭐⭐⭐⭐⭐ | 유료 | 네이티브 `web_search_20250305` | prompt caching 30~50% 절감 |
+| OpenAI / Gemini | — | — | — | 어댑터 stub만 (미구현) |
+
+ENV `LLM_PROVIDER`로 스왑. Upstage 사용 시 `TAVILY_API_KEY`가 없으면 시드 KB만으로 응답하며 응답에 「최신성 확인 필요」가 명시된다.
+
 ## Vercel 배포
 
 1. GitHub에 푸시 후 Vercel에서 Import.
 2. Framework: Next.js (자동 감지). Region: `icn1 (Seoul)`.
 3. Environment Variables(Production+Preview):
-   - `LLM_PROVIDER=anthropic`
-   - `ANTHROPIC_API_KEY=sk-ant-...`
-   - `ANTHROPIC_MODEL=claude-sonnet-4-5` (선택)
-   - `DATABASE_URL=...` (opt-in 로그 활성화 시)
+   - **Upstage(기본)**: `LLM_PROVIDER=upstage` · `UPSTAGE_API_KEY=up-...` · `UPSTAGE_MODEL=solar-pro2` · `TAVILY_API_KEY=tvly-...`
+   - **Anthropic(대안)**: `LLM_PROVIDER=anthropic` · `ANTHROPIC_API_KEY=sk-ant-...` · `ANTHROPIC_MODEL=claude-sonnet-4-5`
+   - (선택) `DATABASE_URL=...` — opt-in 로그 활성화 시
 4. Deploy 클릭. `vercel.json`에서 `/api/chat` 함수 `maxDuration=60`s 가 설정되어 있다.
 
 ## 앱인토스(App-in-Toss) 게시 (Phase 2)
