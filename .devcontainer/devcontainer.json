@@ -25,8 +25,7 @@
       "extensions": [
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "bradlc.vscode-tailwindcss",
-        "ms-vscode.vscode-typescript-next"
+        "bradlc.vscode-tailwindcss"
       ],
       "settings": {
         "editor.formatOnSave": true,
@@ -34,10 +33,6 @@
         "typescript.tsdk": "node_modules/typescript/lib"
       }
     }
-  },
-  "containerEnv": {
-    "PNPM_HOME": "/home/node/.local/share/pnpm",
-    "PATH": "/home/node/.local/share/pnpm:${PATH}"
   },
   "remoteUser": "node"
 }
