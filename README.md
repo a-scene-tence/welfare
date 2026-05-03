@@ -60,13 +60,24 @@ db/
 
 ## 로컬 실행
 
+### 옵션 A: GitHub Codespaces (브라우저, iPad 가능) — 권장
+
+저장소 페이지 → **Code** → **Codespaces** → **Create codespace**.
+Node.js·pnpm·git이 미리 설치되어 있고, 시크릿(`UPSTAGE_API_KEY` 등)은
+[GitHub Codespaces 시크릿](https://github.com/settings/codespaces)에 등록 시
+자동 주입된다. 자세한 절차는 [`.devcontainer/README.md`](.devcontainer/README.md).
+
+### 옵션 B: 로컬 머신
+
 ```bash
 pnpm install
 cp .env.example .env.local
-# 기본 공급자(Upstage) 사용 시 최소:
+# .env.local 편집 (절대 .env.example에 실제 키 넣지 말 것):
 #   LLM_PROVIDER=upstage
 #   UPSTAGE_API_KEY=up-...        # https://console.upstage.ai → API Keys
 #   TAVILY_API_KEY=tvly-...       # (권장) https://app.tavily.com → API Keys
+#   SUPABASE_URL=...              # (선택) Supabase 로깅용
+#   SUPABASE_SERVICE_ROLE_KEY=... # (선택) Supabase 로깅용
 pnpm dev
 # http://localhost:3000
 ```
