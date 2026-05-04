@@ -28,15 +28,27 @@ export function maskFreeText(input: string | undefined | null): string {
 }
 
 /**
- * 월 소득(원)을 100만원 단위 버킷으로 변환. 예: 2_300_000 → "200만~300만".
+ * 월 소득(원)을 100만원 단위 버킷으로 변환. 예: 2_300_000 → "월 200만~300만".
  * 1000만 초과는 단일 라벨.
  */
 export function bucketIncome(monthlyKRW: number): string {
   if (monthlyKRW < 0) return "미상";
   if (monthlyKRW === 0) return "0원";
   const millions = Math.floor(monthlyKRW / 1_000_000);
-  if (millions >= 10) return "1000만 초과";
-  return `${millions * 100}만~${(millions + 1) * 100}만`;
+  if (millions >= 10) return "월 1000만 초과";
+  return `월 ${millions * 100}만~${(millions + 1) * 100}만`;
+}
+
+/**
+ * 연 총급여(원)를 1000만원 단위 버킷으로 변환. 예: 36_000_000 → "연 3000만~4000만".
+ * 5억 초과는 단일 라벨.
+ */
+export function bucketAnnualIncome(annualKRW: number): string {
+  if (annualKRW < 0) return "미상";
+  if (annualKRW === 0) return "0원";
+  const tensOfMillions = Math.floor(annualKRW / 10_000_000);
+  if (tensOfMillions >= 50) return "연 5억 초과";
+  return `연 ${tensOfMillions * 1000}만~${(tensOfMillions + 1) * 1000}만`;
 }
 
 /**
@@ -81,10 +93,10 @@ export type MaskedProfile = {
 export function maskProfile(profile: {
   region: { sido: string };
   age: number;
-  household: { size: number; monthlyIncomeKRW: number };
+  household: { size: number; annualIncomeKRW: number };
   marital:
     | { status: "single" }
-    | { status: "married"; spouseAge: number; spouseMonthlyIncomeKRW: number };
+    | { status: "married"; spouseAge: number; spouseAnnualIncomeKRW: number };
   children: { age: number }[];
   situations: string[];
   freeText?: string;
@@ -93,7 +105,7 @@ export function maskProfile(profile: {
     sido: profile.region.sido,
     ageBucket: bucketAge(profile.age),
     householdBucket: bucketHouseholdSize(profile.household.size),
-    incomeBucket: bucketIncome(profile.household.monthlyIncomeKRW),
+    incomeBucket: bucketAnnualIncome(profile.household.annualIncomeKRW),
     maritalStatus: profile.marital.status,
     hasChildren: profile.children.length > 0,
     childCount: profile.children.length,
@@ -102,7 +114,7 @@ export function maskProfile(profile: {
   };
   if (profile.marital.status === "married") {
     base.spouseAgeBucket = bucketAge(profile.marital.spouseAge);
-    base.spouseIncomeBucket = bucketIncome(profile.marital.spouseMonthlyIncomeKRW);
+    base.spouseIncomeBucket = bucketAnnualIncome(profile.marital.spouseAnnualIncomeKRW);
   }
   return base;
 }

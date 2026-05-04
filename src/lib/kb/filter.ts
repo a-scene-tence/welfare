@@ -1,6 +1,7 @@
 import type { KbProgram } from "./loader";
 import type { UserProfile } from "@/lib/schema";
 import {
+  annualToMonthly,
   medianIncomeForHousehold,
   medianIncomePercentile,
 } from "@/lib/income";
@@ -13,14 +14,15 @@ export function filterPrograms(
   profile: UserProfile,
   limit = 15,
 ): KbProgram[] {
-  const totalIncome =
-    profile.household.monthlyIncomeKRW +
+  const annualTotal =
+    profile.household.annualIncomeKRW +
     (profile.marital.status === "married"
-      ? profile.marital.spouseMonthlyIncomeKRW
+      ? profile.marital.spouseAnnualIncomeKRW
       : 0);
+  const monthlyTotal = annualToMonthly(annualTotal);
   const userPercentile = medianIncomePercentile(
     profile.household.size,
-    totalIncome,
+    monthlyTotal,
   );
   void medianIncomeForHousehold(profile.household.size); // ensure data loaded
 

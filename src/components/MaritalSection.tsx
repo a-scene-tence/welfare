@@ -26,7 +26,7 @@ export function MaritalSection({ marital, onChange }: Props) {
             onChange({
               status: "married",
               spouseAge: 30,
-              spouseMonthlyIncomeKRW: 0,
+              spouseAnnualIncomeKRW: 0,
             })
           }
         >
@@ -52,20 +52,21 @@ export function MaritalSection({ marital, onChange }: Props) {
             />
           </label>
           <label className="block">
-            <span className="block text-sm font-medium mb-1">배우자 월 소득(원)</span>
+            <span className="block text-sm font-medium mb-1">배우자 연 총급여(원)</span>
             <input
               type="number"
               min={0}
               step={1}
               inputMode="numeric"
-              value={marital.spouseMonthlyIncomeKRW || ""}
+              value={marital.spouseAnnualIncomeKRW || ""}
               onChange={(e) =>
                 onChange({
                   ...marital,
-                  spouseMonthlyIncomeKRW: Number(e.target.value) || 0,
+                  spouseAnnualIncomeKRW: Number(e.target.value) || 0,
                 })
               }
               className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-base"
+              placeholder="예: 36000000"
             />
           </label>
         </div>

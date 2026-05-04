@@ -45,7 +45,7 @@ export function WelfareForm() {
     const profile = {
       region,
       age,
-      household: { size, monthlyIncomeKRW: income },
+      household: { size, annualIncomeKRW: income },
       marital,
       children: Array.from({ length: childrenCount }, () => ({ age: 0 })),
       situations,
@@ -109,9 +109,9 @@ export function WelfareForm() {
       <section>
         <IncomeInput
           size={size}
-          monthlyIncomeKRW={income}
-          spouseMonthlyIncomeKRW={
-            marital.status === "married" ? marital.spouseMonthlyIncomeKRW : 0
+          annualIncomeKRW={income}
+          spouseAnnualIncomeKRW={
+            marital.status === "married" ? marital.spouseAnnualIncomeKRW : 0
           }
           onChangeSize={setSize}
           onChangeIncome={setIncome}
