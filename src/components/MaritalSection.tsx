@@ -56,7 +56,8 @@ export function MaritalSection({ marital, onChange }: Props) {
             <input
               type="number"
               min={0}
-              step={10000}
+              step={1}
+              inputMode="numeric"
               value={marital.spouseMonthlyIncomeKRW || ""}
               onChange={(e) =>
                 onChange({
