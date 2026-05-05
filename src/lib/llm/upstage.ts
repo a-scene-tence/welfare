@@ -92,6 +92,16 @@ export class UpstageProvider implements LlmProvider {
     const seenCitations = new Set<string>();
 
     for (let turn = 0; turn < maxSearches + 1; turn++) {
+      console.info(
+        "[upstage] turn",
+        turn,
+        "model",
+        this.model,
+        "searchCount",
+        searchCount,
+        "messages",
+        messages.length,
+      );
       const body = {
         model: this.model,
         messages,
@@ -114,6 +124,7 @@ export class UpstageProvider implements LlmProvider {
           signal: req.signal,
         });
       } catch (err) {
+        console.error("[upstage] fetch failed", err);
         yield {
           type: "error",
           message: err instanceof Error ? err.message : "Upstage 호출 실패",
@@ -121,8 +132,11 @@ export class UpstageProvider implements LlmProvider {
         return;
       }
 
+      console.info("[upstage] http", res.status);
+
       if (!res.ok || !res.body) {
         const text = await res.text().catch(() => "");
+        console.error("[upstage] api error", res.status, text.slice(0, 300));
         yield {
           type: "error",
           message: `Upstage API 오류 (HTTP ${res.status}): ${text.slice(0, 300)}`,
@@ -222,9 +236,15 @@ export class UpstageProvider implements LlmProvider {
         }
 
         searchCount++;
+        console.info("[upstage] tool_call web_search", JSON.stringify(query));
         yield { type: "tool_use", name: "web_search", input: { query } };
 
         const result = await externalSearch(query, allowedDomains, { signal: req.signal });
+        console.info(
+          "[upstage] search result hits",
+          result.hits.length,
+          result.notice ? `notice: ${result.notice.slice(0, 80)}` : "",
+        );
         for (const hit of result.hits as SearchHit[]) {
           if (!seenCitations.has(hit.url)) {
             seenCitations.add(hit.url);

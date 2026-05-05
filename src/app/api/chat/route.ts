@@ -78,16 +78,26 @@ export async function POST(req: NextRequest) {
   const provider = getLlmProvider();
   const sessionId = newSessionId();
 
+  console.info("[chat] start", {
+    sido: profile.region.sido,
+    sigungu: profile.region.sigungu,
+    sessionId,
+    provider: provider.name,
+  });
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
+      console.info("[chat] stream open", sessionId);
       let assembled = "";
+      let firstDeltaLoggedAt: number | null = null;
       const citations: string[] = [];
       let inputTokens = 0;
       let outputTokens = 0;
       let errorType: string | undefined;
       try {
         controller.enqueue(encoder.encode(sse({ type: "start", sessionId })));
+        console.info("[chat] provider begin", provider.name);
         for await (const event of provider.streamChat({
           system: [
             { text: SYSTEM_PROMPT_KO, cache: true },
@@ -109,6 +119,14 @@ export async function POST(req: NextRequest) {
           apiKey: byokKey,
         })) {
           if (event.type === "text_delta") {
+            if (firstDeltaLoggedAt === null) {
+              firstDeltaLoggedAt = Date.now();
+              console.info(
+                "[chat] first text_delta after",
+                firstDeltaLoggedAt - startedAt,
+                "ms",
+              );
+            }
             assembled += event.text;
             controller.enqueue(encoder.encode(sse(event)));
           } else if (event.type === "citation") {
@@ -146,6 +164,7 @@ export async function POST(req: NextRequest) {
         );
       } catch (err) {
         errorType = "stream_error";
+        console.error("[chat] stream error", err);
         controller.enqueue(
           encoder.encode(
             sse({
@@ -157,6 +176,14 @@ export async function POST(req: NextRequest) {
       } finally {
         controller.close();
         const latencyMs = Date.now() - startedAt;
+        console.info("[chat] done", {
+          sessionId,
+          latencyMs,
+          tokensIn: inputTokens,
+          tokensOut: outputTokens,
+          errorType,
+          assembledChars: assembled.length,
+        });
         const baseLog = {
           sessionId,
           createdAt: new Date().toISOString(),

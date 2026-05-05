@@ -29,8 +29,6 @@ export function ChatStream({ profile, byokKey }: Props) {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    let stale = false;
-
     (async () => {
       try {
         const resp = await fetch("/api/chat", {
@@ -38,10 +36,8 @@ export function ChatStream({ profile, byokKey }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ profile, messages: [], byokKey }),
         });
-        if (stale) return;
         if (!resp.ok) {
           const errBody = await resp.json().catch(() => ({ error: "응답 오류" }));
-          if (stale) return;
           setError(errBody.error ?? `HTTP ${resp.status}`);
           setDone(true);
           return;
@@ -56,7 +52,6 @@ export function ChatStream({ profile, byokKey }: Props) {
         let buffer = "";
         while (true) {
           const { value, done: streamDone } = await reader.read();
-          if (stale) return;
           if (streamDone) break;
           buffer += decoder.decode(value, { stream: true });
           let idx;
@@ -85,17 +80,16 @@ export function ChatStream({ profile, byokKey }: Props) {
             }
           }
         }
-        if (!stale) setDone(true);
+        setDone(true);
       } catch (err) {
-        if (stale) return;
         setError((err as Error).message ?? "네트워크 오류");
         setDone(true);
       }
     })();
 
-    return () => {
-      stale = true;
-    };
+    // 의도적으로 cleanup 없음. startedRef 가 단일 실행 보장.
+    // 사용자가 페이지 이탈 시 fetch 는 백그라운드 종료까지 실행되며,
+    // unmounted 컴포넌트 setState 는 React 18+ 에서 무해 no-op.
   }, [profile, byokKey]);
 
   return (

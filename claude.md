@@ -299,31 +299,52 @@ pnpm analyze     # ANALYZE=true next build
   - 만원 단위 가독성을 원하면 별도 포맷 컴포넌트(천 단위 콤마)나 라벨로 처리.
   - 사용자 자유 입력 항목에는 `step={1}` 또는 `step` 미지정 권장.
 
-### [2026-05-05] React Strict Mode — 첫 SSE fetch 가 abort 되어 응답이 영원히 표시되지 않음
+### [2026-05-05] React Strict Mode — 첫 SSE fetch 가 무효화되어 응답이 영원히 표시되지 않음 (1차 fix 결함 + 근본 fix)
 
 - **증상**: 페르소나 1(노원구 신혼부부) 입력 후 `/chat` 페이지가 "공식 출처를 검색해 답변을
   준비하고 있습니다. 잠시만 기다려 주세요…" 에서 멈춤. 에러 메시지도 없고 응답 텍스트도
   없음.
-- **원인**: `next.config.ts` 의 `reactStrictMode: true` 가 dev 모드에서 effect 를 의도적으로
-  두 번 실행. `ChatStream.tsx` 의 useEffect 가 다음 시퀀스로 깨짐:
-  1. 첫 mount: `startedRef=false` → `true`. fetch 시작 (controller1).
-  2. Strict Mode unmount: cleanup 의 `controller1.abort()` 가 fetch 를 즉시 종료.
-  3. Strict Mode remount: `startedRef.current === true` → 조기 return. 새 fetch 안 시작.
-  결과: 첫 fetch 는 abort, 두 번째 fetch 는 안 시작 → 영원히 빈 화면.
-- **해결** (`ChatStream.tsx`):
-  - `controller.abort()` 패턴을 `let stale` flag 로 교체. cleanup 에서 `stale = true` 만
-    설정하고 abort 는 호출하지 않음. `stale` 체크를 각 setState 전에 수행.
-  - 부수 효과로 검색 진행 상황(`tool_use` 이벤트 카운트)을 로딩 메시지에 노출 →
-    "웹 검색 N회 진행 중 · 응답 시작까지 최대 30~60초 소요될 수 있습니다."
-- **트레이드오프**: 사용자가 mid-stream 에 페이지를 떠나도 fetch 는 서버에서 끝까지 실행됨
-  (LLM 비용은 어차피 기 발생). 클라이언트는 빈 reader 로 스트림 소비. React 18+ 는 unmounted
-  setState 를 무해한 no-op 으로 처리.
+- **근본 원인**: `next.config.ts` 의 `reactStrictMode: true` 가 dev 모드에서 effect 를 의도적으로
+  두 번 실행. `ChatStream.tsx` useEffect 의 cleanup 이 첫 mount 의 작업을 무효화하고,
+  두 번째 mount 는 `startedRef.current=true` 라서 작업을 재개하지 않음.
+- **1차 fix (commit `9ca4ac6`) 의 결함** — 동일 결함을 다른 형태로 답습:
+  ```ts
+  // 1차 fix:
+  if (startedRef.current) return;
+  startedRef.current = true;
+  let stale = false;
+  (async () => { ...; if (stale) return; ... })();
+  return () => { stale = true; };
+  ```
+  Strict Mode 에서:
+  1. Mount #1: stale_A=false. fetch_A 시작.
+  2. Cleanup #1: stale_A=true (closure A 의 변수 mutate).
+  3. Mount #2: startedRef true → 조기 return. 새 closure 없음.
+  4. Fetch_A 응답 도착하지만 closure A 의 `if (stale) return` 가 모든 setState 차단.
+  → UI 영원히 빈 상태. abort() 를 stale 체크로 바꿨을 뿐 같은 결함.
+- **근본 fix (commit `<후속>`)** — cleanup 자체 제거:
+  ```ts
+  if (startedRef.current) return;
+  startedRef.current = true;
+  (async () => { ... fetch + setState; (stale 가드 없음) ... })();
+  // cleanup 없음. startedRef 가 단일 실행 보장.
+  ```
+  Strict Mode 에서: mount #1 fetch 시작 → cleanup #1 no-op → mount #2 조기 return →
+  fetch_A 응답 도착 → setState 가 마운트된 컴포넌트에 정상 반영.
+- **부가 개선**: dev 서버에서 stuck 상태 진단을 쉽게 하기 위해 `route.ts` 와 `upstage.ts` 에
+  단계별 `console.info` 로그 추가 (`[chat] start`, `[chat] provider begin`,
+  `[chat] first text_delta after Xms`, `[upstage] turn N`, `[upstage] http 200` 등).
+- **트레이드오프**: 사용자가 mid-stream 페이지 이탈 시 fetch 는 서버에서 끝까지 실행됨
+  (Vercel maxDuration 60s 이내). 클라이언트의 setState 는 unmounted 컴포넌트 대상이지만
+  React 18+ 가 무해 no-op 으로 처리.
 - **재발 방지**:
-  - **AbortController + cleanup 의 `abort()` 호출은 Strict Mode 와 위험하게 결합**. 단발성
-    초기 로딩에서는 `stale` flag 패턴 권장.
-  - SSE/장시간 스트리밍은 특히 abort 에 취약. 가능하면 모듈 레벨 / ref 기반 단일톤 패턴
-    또는 Suspense + use() 사용 검토.
-  - 새로운 streaming hook 작성 시 `reactStrictMode: true` 환경에서 첫 응답 도달 여부 검증.
+  - **`AbortController.abort()` 또는 `stale` flag — cleanup 안에서 작업물을 무효화하는 패턴은
+    Strict Mode + `startedRef` 단일실행 가드와 결합 시 위험.** 첫 cleanup 이 첫 mount 의
+    작업을 죽이는데 두 번째 mount 가 재시작하지 않으면 영원히 빈 결과.
+  - 단발성 초기 로딩 fetch 는 cleanup 없이 fire-and-forget 패턴이 가장 단순·안전.
+  - Strict Mode 환경에서 streaming hook 작성 시 첫 응답이 UI 에 도달하는지 반드시 수동 검증.
+  - 진단 console.info 로그는 Vercel 함수 로그 (production) 와 dev 콘솔 양쪽에서 stuck 원인
+    파악에 결정적. 비용·노이즈는 미미하므로 streaming 경로에는 유지 권장.
 
 ### [2026-05-04] 정책 정합성 — 소득 입력을 월 세전 → 연 총급여로 전면 변경
 
