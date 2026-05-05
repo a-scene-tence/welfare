@@ -70,5 +70,13 @@ ${currentYear}
 [사전 후보 메모(시드 KB — 반드시 web_search로 최신성 검증 후 사용)]
 ${kbSnippets}
 
-위 프로필에 맞춰 ① 중앙정부 ② ${region.sido} ③ ${region.sigungu} 3계층 혜택을 안내해 주세요. 각 사업은 web_search로 ${currentYear}년 시행 여부를 확인한 후 인용하시고, 출처 URL을 반드시 표기해 주세요.`;
+위 프로필에 맞춰 ① 중앙정부 ② ${region.sido} ③ ${region.sigungu} 3계층 혜택을 안내해 주세요.
+
+[검증 규칙 — 위반 시 환각으로 간주, 응답에서 해당 사업 삭제]
+- 각 사업은 web_search 결과에서 ${currentYear}년 또는 ${currentYear - 1}년 시행 정보를 본문으로 확인한 후 인용. 시행 연도가 확인 안 되면 안내 금지.
+- ② 광역시도 사업: "${region.sido}" 명칭 또는 그 영문 도메인이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있을 때만 안내. 없으면 "② ${region.sido}: 확인된 사업 없음" 으로 명시.
+- ③ 기초자치단체 사업: "${region.sigungu}" 명칭(한글 또는 로마자)이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있을 때만 안내. 없으면 "③ ${region.sigungu}: 확인된 사업 없음 — 거주지 행정복지센터 문의 권장" 으로 명시. 다른 시·군·구 자료를 ${region.sigungu} 사업으로 일반화 금지.
+- 다른 시·도/시·군·구의 유사 사업명을 ${region.sido} ${region.sigungu} 사업으로 일반화·유추 금지.
+- 인용 URL 은 web_search 결과에 등장한 정확한 URL 만 표기 (도메인·경로·쿼리·해시 변경 금지).
+- ③ 계층 사업이 1차 검색으로 미확인이면 "${region.sido} ${region.sigungu} <사업명> ${currentYear}" 쿼리로 1회 이상 추가 검색 후 판단.`;
 }
