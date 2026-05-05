@@ -20,6 +20,7 @@ type Props = {
 export function ChatStream({ profile, byokKey }: Props) {
   const [text, setText] = useState("");
   const [citations, setCitations] = useState<string[]>([]);
+  const [searchCount, setSearchCount] = useState(0);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
@@ -27,7 +28,8 @@ export function ChatStream({ profile, byokKey }: Props) {
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    const controller = new AbortController();
+
+    let stale = false;
 
     (async () => {
       try {
@@ -35,10 +37,11 @@ export function ChatStream({ profile, byokKey }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ profile, messages: [], byokKey }),
-          signal: controller.signal,
         });
+        if (stale) return;
         if (!resp.ok) {
           const errBody = await resp.json().catch(() => ({ error: "응답 오류" }));
+          if (stale) return;
           setError(errBody.error ?? `HTTP ${resp.status}`);
           setDone(true);
           return;
@@ -53,6 +56,7 @@ export function ChatStream({ profile, byokKey }: Props) {
         let buffer = "";
         while (true) {
           const { value, done: streamDone } = await reader.read();
+          if (stale) return;
           if (streamDone) break;
           buffer += decoder.decode(value, { stream: true });
           let idx;
@@ -66,6 +70,8 @@ export function ChatStream({ profile, byokKey }: Props) {
                 setText((prev) => prev + ev.text);
               } else if (ev.type === "citation" && typeof ev.url === "string") {
                 setCitations((prev) => [...prev, ev.url]);
+              } else if (ev.type === "tool_use") {
+                setSearchCount((prev) => prev + 1);
               } else if (ev.type === "error") {
                 setError(ev.message ?? "오류 발생");
               } else if (ev.type === "done") {
@@ -79,15 +85,17 @@ export function ChatStream({ profile, byokKey }: Props) {
             }
           }
         }
-        setDone(true);
+        if (!stale) setDone(true);
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
+        if (stale) return;
         setError((err as Error).message ?? "네트워크 오류");
         setDone(true);
       }
     })();
 
-    return () => controller.abort();
+    return () => {
+      stale = true;
+    };
   }, [profile, byokKey]);
 
   return (
@@ -101,9 +109,14 @@ export function ChatStream({ profile, byokKey }: Props) {
             {text}
           </ReactMarkdown>
         ) : (
-          <p className="text-sm text-[var(--muted)]">
-            공식 출처를 검색해 답변을 준비하고 있습니다. 잠시만 기다려 주세요…
-          </p>
+          <div className="text-sm text-[var(--muted)] space-y-1">
+            <p>공식 출처를 검색해 답변을 준비하고 있습니다. 잠시만 기다려 주세요…</p>
+            {searchCount > 0 && (
+              <p className="text-xs">
+                웹 검색 {searchCount}회 진행 중 · 응답 시작까지 최대 30~60초 소요될 수 있습니다.
+              </p>
+            )}
+          </div>
         )}
         {!done && text && (
           <p className="text-xs text-[var(--muted)] mt-2">응답 작성 중…</p>

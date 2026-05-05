@@ -299,6 +299,32 @@ pnpm analyze     # ANALYZE=true next build
   - 만원 단위 가독성을 원하면 별도 포맷 컴포넌트(천 단위 콤마)나 라벨로 처리.
   - 사용자 자유 입력 항목에는 `step={1}` 또는 `step` 미지정 권장.
 
+### [2026-05-05] React Strict Mode — 첫 SSE fetch 가 abort 되어 응답이 영원히 표시되지 않음
+
+- **증상**: 페르소나 1(노원구 신혼부부) 입력 후 `/chat` 페이지가 "공식 출처를 검색해 답변을
+  준비하고 있습니다. 잠시만 기다려 주세요…" 에서 멈춤. 에러 메시지도 없고 응답 텍스트도
+  없음.
+- **원인**: `next.config.ts` 의 `reactStrictMode: true` 가 dev 모드에서 effect 를 의도적으로
+  두 번 실행. `ChatStream.tsx` 의 useEffect 가 다음 시퀀스로 깨짐:
+  1. 첫 mount: `startedRef=false` → `true`. fetch 시작 (controller1).
+  2. Strict Mode unmount: cleanup 의 `controller1.abort()` 가 fetch 를 즉시 종료.
+  3. Strict Mode remount: `startedRef.current === true` → 조기 return. 새 fetch 안 시작.
+  결과: 첫 fetch 는 abort, 두 번째 fetch 는 안 시작 → 영원히 빈 화면.
+- **해결** (`ChatStream.tsx`):
+  - `controller.abort()` 패턴을 `let stale` flag 로 교체. cleanup 에서 `stale = true` 만
+    설정하고 abort 는 호출하지 않음. `stale` 체크를 각 setState 전에 수행.
+  - 부수 효과로 검색 진행 상황(`tool_use` 이벤트 카운트)을 로딩 메시지에 노출 →
+    "웹 검색 N회 진행 중 · 응답 시작까지 최대 30~60초 소요될 수 있습니다."
+- **트레이드오프**: 사용자가 mid-stream 에 페이지를 떠나도 fetch 는 서버에서 끝까지 실행됨
+  (LLM 비용은 어차피 기 발생). 클라이언트는 빈 reader 로 스트림 소비. React 18+ 는 unmounted
+  setState 를 무해한 no-op 으로 처리.
+- **재발 방지**:
+  - **AbortController + cleanup 의 `abort()` 호출은 Strict Mode 와 위험하게 결합**. 단발성
+    초기 로딩에서는 `stale` flag 패턴 권장.
+  - SSE/장시간 스트리밍은 특히 abort 에 취약. 가능하면 모듈 레벨 / ref 기반 단일톤 패턴
+    또는 Suspense + use() 사용 검토.
+  - 새로운 streaming hook 작성 시 `reactStrictMode: true` 환경에서 첫 응답 도달 여부 검증.
+
 ### [2026-05-04] 정책 정합성 — 소득 입력을 월 세전 → 연 총급여로 전면 변경
 
 - **배경**: 사용자가 "월 세전 vs 연말정산 총급여 기준" 정합성 의문 제기 후, 연 총급여를
