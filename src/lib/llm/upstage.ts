@@ -2,7 +2,6 @@ import type { LlmProvider, StreamEvent, StreamRequest } from "./provider";
 import {
   externalSearch,
   formatSearchResultForLlm,
-  type SearchHit,
 } from "@/lib/tools/externalSearch";
 
 const DEFAULT_MODEL = "solar-pro2";
@@ -89,7 +88,6 @@ export class UpstageProvider implements LlmProvider {
     let searchCount = 0;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
-    const seenCitations = new Set<string>();
 
     for (let turn = 0; turn < maxSearches + 1; turn++) {
       console.info(
@@ -245,12 +243,10 @@ export class UpstageProvider implements LlmProvider {
           result.hits.length,
           result.notice ? `notice: ${result.notice.slice(0, 80)}` : "",
         );
-        for (const hit of result.hits as SearchHit[]) {
-          if (!seenCitations.has(hit.url)) {
-            seenCitations.add(hit.url);
-            yield { type: "citation", url: hit.url, title: hit.title };
-          }
-        }
+        // 의도적으로 citation 자동 emit 안 함.
+        // Tavily 가 반환한 모든 hit 을 citation 으로 노출하면 LLM 이 본문에서 사용 안 한
+        // 무관 지역 URL 까지 표시되어 사용자가 신뢰할 수 없음. 최종 citation 목록은
+        // route.ts 가 응답 본문(assembled) 에서 직접 인용된 URL 만 추출해 구성.
 
         messages.push({
           role: "tool",

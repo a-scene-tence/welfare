@@ -17,6 +17,14 @@ import {
   recordConsentLog,
   recordMetric,
 } from "@/lib/logger";
+import {
+  extractTierBlock,
+  extractUrls,
+  isWhitelistedDomain,
+  matchSidoInUrl,
+  matchSigunguInUrl,
+  tierBlockIsEmpty,
+} from "@/lib/regionMatch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -91,7 +99,7 @@ export async function POST(req: NextRequest) {
       console.info("[chat] stream open", sessionId);
       let assembled = "";
       let firstDeltaLoggedAt: number | null = null;
-      const citations: string[] = [];
+      let finalCitations: string[] = [];
       let inputTokens = 0;
       let outputTokens = 0;
       let errorType: string | undefined;
@@ -129,9 +137,6 @@ export async function POST(req: NextRequest) {
             }
             assembled += event.text;
             controller.enqueue(encoder.encode(sse(event)));
-          } else if (event.type === "citation") {
-            citations.push(event.url);
-            controller.enqueue(encoder.encode(sse(event)));
           } else if (event.type === "tool_use") {
             controller.enqueue(encoder.encode(sse({ type: "tool_use" })));
           } else if (event.type === "done") {
@@ -141,6 +146,50 @@ export async function POST(req: NextRequest) {
             errorType = "provider_error";
             controller.enqueue(encoder.encode(sse(event)));
           }
+          // citation 이벤트는 무시 — 1.5단계: 본문에서 직접 추출하므로
+        }
+
+        // 1.5단계: 거주지 도메인 검증 (② 광역 / ③ 시·군·구)
+        const tier2Block = extractTierBlock(assembled, 2);
+        if (tier2Block && !tierBlockIsEmpty(tier2Block)) {
+          const tier2Urls = extractUrls(tier2Block);
+          const matched = tier2Urls.some((u) =>
+            matchSidoInUrl(profile.region.sido, u),
+          );
+          if (!matched) {
+            const warning =
+              `\n\n> ⚠ **자동 검증 경고**: ② ${profile.region.sido} 안내된 사업의 인용 URL 에 ` +
+              `${profile.region.sido} 공식 도메인이 확인되지 않았습니다. 시행 여부와 자격은 ` +
+              `반드시 ${profile.region.sido} 또는 보건복지상담센터(129)에 확인하세요.\n`;
+            controller.enqueue(
+              encoder.encode(sse({ type: "text_delta", text: warning })),
+            );
+            assembled += warning;
+            console.info(
+              `[chat] tier2_no_match sido=${profile.region.sido}`,
+            );
+          }
+        }
+
+        const tier3Block = extractTierBlock(assembled, 3);
+        if (tier3Block && !tierBlockIsEmpty(tier3Block)) {
+          const tier3Urls = extractUrls(tier3Block);
+          const matched = tier3Urls.some((u) =>
+            matchSigunguInUrl(profile.region.sigungu, u),
+          );
+          if (!matched) {
+            const warning =
+              `\n\n> ⚠ **자동 검증 경고**: ③ ${profile.region.sigungu} 안내된 사업의 인용 URL 에 ` +
+              `${profile.region.sigungu} 공식 도메인이 확인되지 않았습니다. 시행 여부와 자격은 ` +
+              `반드시 ${profile.region.sigungu} 행정복지센터 또는 보건복지상담센터(129)에 확인하세요.\n`;
+            controller.enqueue(
+              encoder.encode(sse({ type: "text_delta", text: warning })),
+            );
+            assembled += warning;
+            console.info(
+              `[chat] tier3_no_match sigungu=${profile.region.sigungu}`,
+            );
+          }
         }
 
         // 응답 말미 면책 강제 추가
@@ -148,16 +197,26 @@ export async function POST(req: NextRequest) {
           !assembled.includes("보건복지상담센터") &&
           !assembled.includes("129")
         ) {
-          const disclaimerEvent = { type: "text_delta", text: DISCLAIMER_BLOCKQUOTE };
+          const disclaimerEvent = {
+            type: "text_delta",
+            text: DISCLAIMER_BLOCKQUOTE,
+          };
           assembled += DISCLAIMER_BLOCKQUOTE;
           controller.enqueue(encoder.encode(sse(disclaimerEvent)));
         }
+
+        // 1.5단계: citations 재구성 — 본문에서 인용된 화이트리스트 URL 만 표시
+        finalCitations = extractUrls(assembled).filter(isWhitelistedDomain);
+        console.info(
+          "[chat] citations from body",
+          finalCitations.length,
+        );
 
         controller.enqueue(
           encoder.encode(
             sse({
               type: "done",
-              citations,
+              citations: finalCitations,
               tokens: { input: inputTokens, output: outputTokens },
             }),
           ),
@@ -199,7 +258,7 @@ export async function POST(req: NextRequest) {
               ...baseLog,
               maskedProfile: maskProfile(profile),
               maskedResponse: maskFreeText(assembled),
-              citations,
+              citations: finalCitations,
             });
           } else {
             await recordMetric(baseLog);
