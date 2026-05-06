@@ -214,6 +214,11 @@ export function extractTierBlock(
     const nextIdx = markdown.indexOf("③", idx + 1);
     if (nextIdx !== -1) end = Math.min(end, nextIdx);
   }
+  if (tier === 3) {
+    // ④ 다음 단계 마커로도 종료
+    const nextSection = markdown.indexOf("④", idx + 1);
+    if (nextSection !== -1) end = Math.min(end, nextSection);
+  }
 
   // 다음 H2 헤딩 (\n## ) 으로 경계 제한
   const remaining = markdown.slice(idx);
@@ -226,9 +231,15 @@ export function extractTierBlock(
   return markdown.slice(idx, end);
 }
 
-/** 계층 블록이 "확인된 사업 없음" 등 보류 상태로 끝났는지 검사. */
+/**
+ * 계층 블록이 "확인된 사업 없음" 등 보류 상태로 시작했는지 검사.
+ *
+ * 매치 범위는 블록 첫 300자만. 응답 본문 끝의 leak 된 ⚠ 경고 메시지나 면책 안의
+ * "확인된 사업 없음" 문자열에 false match 되는 것을 차단하기 위함.
+ */
 export function tierBlockIsEmpty(block: string): boolean {
+  const head = block.slice(0, 300);
   return /확인된\s*사업\s*없음|해당.{0,30}없음|확인\s*결과.{0,60}(없음|미확인|불명)/.test(
-    block,
+    head,
   );
 }
