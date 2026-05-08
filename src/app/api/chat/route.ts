@@ -8,7 +8,7 @@ import {
   WEB_SEARCH_ALLOWED_DOMAINS,
   WEB_SEARCH_DEFAULT_MAX_USES,
 } from "@/lib/tools/webSearch";
-import { loadCentralPrograms, serializeProgram } from "@/lib/kb/loader";
+import { loadAllPrograms, serializeProgram } from "@/lib/kb/loader";
 import { filterPrograms } from "@/lib/kb/filter";
 import { rateLimit } from "@/lib/ratelimit";
 import { maskFreeText, maskProfile } from "@/lib/pii";
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const programs = loadCentralPrograms();
+  const programs = loadAllPrograms();
   const candidates = filterPrograms(programs, profile);
   const kbSnippets =
     candidates.length > 0

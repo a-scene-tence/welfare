@@ -4,7 +4,7 @@
 > 규칙**과, 지금까지 마주친 **버그·gotcha 로그**입니다. 새 채팅 세션이 시작되면
 > **`spec.md` → `claude.md` 순서로 읽고** 작업을 이어 받습니다.
 >
-> 마지막 업데이트: 2026-05-08 (v7.1: 1.8단계 — fixSourceLinks multi-line 패턴 지원)
+> 마지막 업데이트: 2026-05-08 (v8: KB 보강 Phase A — 광역시도 30개 사업 추가)
 
 ---
 
@@ -439,6 +439,35 @@ pnpm analyze     # ANALYZE=true next build
 - 후보: (A) 처음부터 앱인토스 / (B) Vercel 먼저 / (C) 동시 출시
 - 결정: (B). 이유: 앱인토스 심사 4~6주 + 디자인 가이드 적용 부담. 웹에서 검증 후 Phase 2.
 - Phase 2 트리거: 사용자 만족도 검증 + 트래픽 확보 시도.
+
+### KB 보강 — Phase A (광역시도 6개)
+
+- 페르소나 회귀에서 ② ③ 계층 보류 패턴이 일관되게 관찰됨 (P1 노원·P2 동래·P3 광주
+  동구). 원인은 `central/*.md` 26개 중앙 사업만 KB 에 있고 광역·기초 자치단체 KB
+  부재 → 100% web_search 의존.
+- 사용자 결정: 광역 + 인구 상위 시·군·구 단계적 보강. 진행 방식은 사업 대상
+  우선순위 제안→승인 → 작성. Phase A·B·C 분할 (plan §21).
+- Phase A 구현 (2026-05-08):
+  - `src/lib/kb/loader.ts`: `KbProgram.region` 필드 + `loadRegionalPrograms`/
+    `loadLocalPrograms`/`loadAllPrograms` 함수 + `readMarkdownDir(dir, recursive)`
+    유틸. central/regional/local 별도 cache.
+  - `src/lib/kb/filter.ts`: region 매칭 (sido/sigungu) + 정렬(기초>광역>중앙) +
+    limit 25.
+  - `src/app/api/chat/route.ts`: `loadCentralPrograms` → `loadAllPrograms` 교체.
+  - 광역 6개 × 5 사업 = 30개 markdown 추가:
+    - 서울: 청년수당·청년월세·신혼임차이자·안심소득·1인가구
+    - 경기: 청년기본소득·면접수당·노동자통장·신혼매입임대·노인일자리(가산)
+    - 부산: 청년디딤돌카드+·신혼/청년 임차이자·노인맞춤돌봄(가산)·노인일자리(가산)·1인가구
+    - 인천: 청년드림체크카드·신혼주거지원·영플러스일자리·노인안심돌봄(가산)·아이드림 출산지원금
+    - 광주: 청년13통장·청년드림수당·신혼임차이자·노인행복일자리(가산)·출산축하금
+    - 대구: 청년정주지원·청년행복카드·신혼주거지원·어르신 효도수당·청년 면접지원
+- 트레이드오프:
+  - 광역 정책은 변경 빈도 높음 → KB 본문에 "운영 여부와 최신 자격은 web_search로
+    재확인" 명시. staleAfter: 2026-12-31 강제. LLM 이 KB+web_search 교차검증.
+  - frontmatter 큐레이션 시 사업명·자격 부정확 위험 → "사전 후보 메모" 로 LLM 의
+    web_search 단서로만 활용 (시스템 프롬프트 §2 "3-소스 교차검증" 으로 보정).
+- 다음 단계: 사용자 페르소나 P1·P2·P3 회귀 재실행 → ② 보류율 감소 측정 → 효과 보고
+  Phase B (나머지 광역 11개) → Phase C (시·군·구).
 
 ### 응답 품질 — 1.8단계 (fixSourceLinks multi-line 패턴 지원)
 

@@ -8,11 +8,16 @@ import {
 
 /**
  * 사용자 프로필 → 후보 사업 추출. 자격이 명시된 경우만 strict 매칭, 그 외는 통과.
+ *
+ * region 매칭: sido 가 명시된 사업은 거주 sido 와 일치해야 후보. sigungu 가 명시
+ * 된 사업은 거주 sigungu 와도 일치해야 후보. 미명시(중앙 사업)는 통과.
+ *
+ * 정렬 우선순위: 기초자치단체(sigungu) > 광역(sido) > 중앙. ② ③ 보류율 감소 목적.
  */
 export function filterPrograms(
   programs: KbProgram[],
   profile: UserProfile,
-  limit = 15,
+  limit = 25,
 ): KbProgram[] {
   const annualTotal =
     profile.household.annualIncomeKRW +
@@ -42,7 +47,17 @@ export function filterPrograms(
         return false;
       }
     }
+    if (p.region?.sido && p.region.sido !== profile.region.sido) return false;
+    if (p.region?.sigungu && p.region.sigungu !== profile.region.sigungu)
+      return false;
     return true;
   });
+  matched.sort((a, b) => regionPriority(b) - regionPriority(a));
   return matched.slice(0, limit);
+}
+
+function regionPriority(p: KbProgram): number {
+  if (p.region?.sigungu) return 2;
+  if (p.region?.sido) return 1;
+  return 0;
 }
