@@ -4,7 +4,7 @@
 > 규칙**과, 지금까지 마주친 **버그·gotcha 로그**입니다. 새 채팅 세션이 시작되면
 > **`spec.md` → `claude.md` 순서로 읽고** 작업을 이어 받습니다.
 >
-> 마지막 업데이트: 2026-05-08 (v7: 1.7단계 — 시뮬레이션 제거·계층 중복 검출·markdown 링크 본문 후처리)
+> 마지막 업데이트: 2026-05-08 (v7.1: 1.8단계 — fixSourceLinks multi-line 패턴 지원)
 
 ---
 
@@ -439,6 +439,27 @@ pnpm analyze     # ANALYZE=true next build
 - 후보: (A) 처음부터 앱인토스 / (B) Vercel 먼저 / (C) 동시 출시
 - 결정: (B). 이유: 앱인토스 심사 4~6주 + 디자인 가이드 적용 부담. 웹에서 검증 후 Phase 2.
 - Phase 2 트리거: 사용자 만족도 검증 + 트래픽 확보 시도.
+
+### 응답 품질 — 1.8단계 (fixSourceLinks multi-line 패턴 지원)
+
+- 1.7단계 회귀 (P1 노원·P2 동래) 결과:
+  - ✅ 시뮬레이션 표 완전 제거 (P1·P2 통과).
+  - ✅ ② 광역 계층 중복 검출 (P2 콘솔 `tier2_central_overlap ["노인맞춤돌봄"]`,
+    본문 ⚠ 자동 경고 첨부 — 사용자 우선순위 핵심 이슈 해결).
+  - ✅ ③ 도메인 매칭 + 자격 매칭 (1.5/1.6단계 효과 유지).
+  - ❌ markdown 링크 후처리 — P1·P2 모두 `[chat] sourceLinkFix replaced` 로그 부재.
+- 진단: P2 raw 본문이 multi-line 형식 (`출처:\n  보건복지부 · 정책브리핑`).
+  `SOURCE_LINE_RE` 가 같은 줄 value `(.+)$` 만 매칭 → multi-line 미처리.
+- 변경 (`src/lib/sourceLinkFix.ts`):
+  - `SOURCE_LABEL_ONLY_RE` 추가 (라벨만 있는 라인).
+  - `SOURCE_VALUE_LINE_RE` 추가 (들여쓰기 또는 sub-list value 라인).
+  - 토큰 변환 로직을 `transformTokens()` 함수로 추출 (단일·다중 라인 재사용).
+  - 라인 루프에 multi-line 분기 추가: 라벨 라인 발견 → 인접 value 라인(들) 추적
+    → 각 value 라인에 transformTokens 적용. 빈 줄·새 라벨·일반 본문 시작 시 종료.
+- 트레이드오프: 라인 처리 복잡도 약간 증가. false positive 가능성 — 라벨만 있는 줄
+  뒤에 들여쓰기된 본문 텍스트가 오는 경우 오변환 위험 (현실적으로 거의 없음).
+- 잔여 위험: 매우 자유로운 출력 형식 (산문 다중 줄)은 여전히 매칭 실패 가능. P3 회귀
+  결과 보고 추가 패턴 발견 시 정밀화.
 
 ### 응답 품질 — 1.7단계 (시뮬레이션 제거·계층 중복 검출·markdown 링크 본문 후처리)
 

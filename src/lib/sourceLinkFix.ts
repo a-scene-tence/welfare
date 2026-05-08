@@ -111,12 +111,48 @@ function findUrlForDomain(
   return null;
 }
 
-// 「출처」 또는 「신청 경로」 라벨 행 매칭. 라벨은 `**` 강조나 `-`/`*` 불릿이 앞에 붙을 수 있음.
+// 「출처: <값>」 같은 단일행 라벨 + 값 매칭. 라벨 앞 글머리 기호·`**` 강조 허용.
 const SOURCE_LINE_RE =
   /^(\s*[-*]?\s*(?:\*\*)?(?:출처|신청\s*경로)(?:\*\*)?\s*[:：]\s*)(.+)$/;
 
+// 「출처:」 만 있고 값은 다음 줄(들)에 있는 multi-line 라벨 매칭.
+const SOURCE_LABEL_ONLY_RE =
+  /^\s*[-*]?\s*(?:\*\*)?(?:출처|신청\s*경로)(?:\*\*)?\s*[:：]\s*$/;
+
+// multi-line 시 값 라인 매칭. 들여쓰기 또는 sub-list 형태 (예: "  보건복지부 · 정책브리핑",
+// "- 보건복지부", "* 정책브리핑") 모두 처리.
+const SOURCE_VALUE_LINE_RE = /^(\s+|\s*[-*]\s+)(.+)$/;
+
 /**
- * 「출처: 복지로 · 국토교통부」 패턴의 행에서 기관명 텍스트를 markdown 링크로 변환.
+ * 토큰 분할 + 매핑 도메인 → 본문 URL 매칭으로 markdown 링크 치환.
+ * 라벨 라인의 value 또는 multi-line value 라인 모두에 재사용.
+ */
+function transformTokens(
+  value: string,
+  domainToUrl: Map<string, string>,
+  bumpReplaced: () => void,
+): string {
+  return value.replace(/([^·/\n]+)/g, (token) => {
+    const trimmed = token.trim();
+    if (!trimmed) return token;
+    if (token.includes("](") || /^https?:\/\//i.test(trimmed)) return token;
+
+    for (const { name, domains } of SORTED_AGENCY_MAP) {
+      if (!token.includes(name)) continue;
+      for (const domain of domains) {
+        const url = findUrlForDomain(domainToUrl, domain);
+        if (!url) continue;
+        bumpReplaced();
+        return token.replace(name, `[${name}](${url})`);
+      }
+    }
+    return token;
+  });
+}
+
+/**
+ * 「출처: 복지로 · 국토교통부」 패턴(single-line 또는 multi-line)의 라인에서 기관명
+ * 텍스트를 markdown 링크로 변환.
  *
  * @returns 변환된 markdown 본문과 치환 횟수
  */
@@ -128,37 +164,37 @@ export function fixSourceLinks(markdown: string): {
   if (domainToUrl.size === 0) return { result: markdown, replaced: 0 };
 
   let replaced = 0;
+  const bumpReplaced = () => {
+    replaced++;
+  };
   const lines = markdown.split("\n");
 
   for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(SOURCE_LINE_RE);
-    if (!m) continue;
-    const prefix = m[1];
-    const value = m[2];
-
-    // 토큰 분할: ` · ` 또는 ` / ` 구분자. 토큰 내부 텍스트는 그대로 보존하면서
-    // 매칭되는 기관명만 markdown 링크로 치환.
-    const transformedValue = value.replace(/([^·/\n]+)/g, (token) => {
-      const trimmed = token.trim();
-      if (!trimmed) return token;
-      // 이미 markdown 링크 또는 URL 단독이면 그대로
-      if (token.includes("](") || /^https?:\/\//i.test(trimmed)) return token;
-
-      for (const { name, domains } of SORTED_AGENCY_MAP) {
-        if (!token.includes(name)) continue;
-        for (const domain of domains) {
-          const url = findUrlForDomain(domainToUrl, domain);
-          if (!url) continue;
-          replaced++;
-          return token.replace(name, `[${name}](${url})`);
-        }
-      }
-      return token;
-    });
-
-    if (transformedValue !== value) {
-      lines[i] = prefix + transformedValue;
+    // (a) 같은 줄 value: "출처: 복지로 · 국토교통부"
+    const single = lines[i].match(SOURCE_LINE_RE);
+    if (single) {
+      const newValue = transformTokens(single[2], domainToUrl, bumpReplaced);
+      if (newValue !== single[2]) lines[i] = single[1] + newValue;
+      continue;
     }
+
+    // (b) multi-line: 라벨만 있고 값은 다음 줄(들).
+    //     "출처:\n  보건복지부 · 정책브리핑" 또는 "- 출처:\n  - 보건복지부\n  - 정책브리핑"
+    if (!SOURCE_LABEL_ONLY_RE.test(lines[i])) continue;
+
+    let j = i + 1;
+    while (j < lines.length) {
+      const line = lines[j];
+      // 빈 줄·새 라벨 라인·일반 본문(들여쓰기 없음) 시작 시 종료
+      if (!line.trim()) break;
+      if (SOURCE_LABEL_ONLY_RE.test(line) || SOURCE_LINE_RE.test(line)) break;
+      const valueMatch = line.match(SOURCE_VALUE_LINE_RE);
+      if (!valueMatch) break;
+      const newValue = transformTokens(valueMatch[2], domainToUrl, bumpReplaced);
+      if (newValue !== valueMatch[2]) lines[j] = valueMatch[1] + newValue;
+      j++;
+    }
+    i = j - 1;
   }
 
   return { result: lines.join("\n"), replaced };
