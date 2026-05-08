@@ -70,6 +70,11 @@ export function ChatStream({ profile, byokKey }: Props) {
               } else if (ev.type === "error") {
                 setError(ev.message ?? "오류 발생");
               } else if (ev.type === "done") {
+                // 1.7단계: 서버가 본문 후처리(markdown 링크 변환) 결과를 finalMarkdown
+                // 으로 보내면 누적 텍스트를 통째로 교체. 짧은 깜빡임은 수용.
+                if (typeof ev.finalMarkdown === "string") {
+                  setText(ev.finalMarkdown);
+                }
                 if (Array.isArray(ev.citations)) {
                   setCitations((prev) => Array.from(new Set([...prev, ...ev.citations])));
                 }

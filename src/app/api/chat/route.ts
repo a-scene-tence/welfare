@@ -25,6 +25,8 @@ import {
   matchSigunguInUrl,
   tierBlockIsEmpty,
 } from "@/lib/regionMatch";
+import { findCentralProgramsInBlock } from "@/lib/centralPrograms";
+import { fixSourceLinks } from "@/lib/sourceLinkFix";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -192,6 +194,42 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // 1.7단계: 계층 중복 분류 검증 — ② ③ 블록에 중앙부처 사업명이 등장하면 자동 경고.
+        // (시스템 프롬프트 §5 계층 분류 규칙을 LLM 이 무시하는 사례 백업)
+        const tier2BlockOverlap = extractTierBlock(assembled, 2);
+        if (tier2BlockOverlap && !tierBlockIsEmpty(tier2BlockOverlap)) {
+          const overlaps = findCentralProgramsInBlock(tier2BlockOverlap);
+          if (overlaps.length > 0) {
+            const warning =
+              `\n\n> ⚠ **자동 검증 경고**: ② ${profile.region.sido} 사업으로 안내된 항목 중 ` +
+              `「${overlaps.join("·")}」은(는) 중앙부처(보건복지부·고용노동부·국토교통부 등)가 운영하는 ` +
+              `전국 공통 사업입니다. ① 중앙정부 사업으로 간주하시고, 신청 시 ${profile.region.sido} ` +
+              `또는 소관 기관에 자격을 확인하세요.\n`;
+            controller.enqueue(
+              encoder.encode(sse({ type: "text_delta", text: warning })),
+            );
+            assembled += warning;
+            console.info(`[chat] tier2_central_overlap`, JSON.stringify(overlaps));
+          }
+        }
+
+        const tier3BlockOverlap = extractTierBlock(assembled, 3);
+        if (tier3BlockOverlap && !tierBlockIsEmpty(tier3BlockOverlap)) {
+          const overlaps = findCentralProgramsInBlock(tier3BlockOverlap);
+          if (overlaps.length > 0) {
+            const warning =
+              `\n\n> ⚠ **자동 검증 경고**: ③ ${profile.region.sigungu} 사업으로 안내된 항목 중 ` +
+              `「${overlaps.join("·")}」은(는) 중앙부처가 운영하는 전국 공통 사업입니다. ` +
+              `① 중앙정부 사업으로 간주하시고, ${profile.region.sigungu} 자체 사업 여부는 ` +
+              `${profile.region.sigungu} 행정복지센터에 확인하세요.\n`;
+            controller.enqueue(
+              encoder.encode(sse({ type: "text_delta", text: warning })),
+            );
+            assembled += warning;
+            console.info(`[chat] tier3_central_overlap`, JSON.stringify(overlaps));
+          }
+        }
+
         // 응답 말미 면책 강제 추가
         if (
           !assembled.includes("보건복지상담센터") &&
@@ -203,6 +241,13 @@ export async function POST(req: NextRequest) {
           };
           assembled += DISCLAIMER_BLOCKQUOTE;
           controller.enqueue(encoder.encode(sse(disclaimerEvent)));
+        }
+
+        // 1.7단계: 본문 후처리 — "출처: 도메인" 텍스트를 markdown 링크로 자동 재작성
+        const linkFix = fixSourceLinks(assembled);
+        if (linkFix.replaced > 0) {
+          assembled = linkFix.result;
+          console.info("[chat] sourceLinkFix replaced", linkFix.replaced);
         }
 
         // 1.5단계: citations 재구성 — 본문에서 인용된 화이트리스트 URL 만 표시
@@ -217,6 +262,7 @@ export async function POST(req: NextRequest) {
             sse({
               type: "done",
               citations: finalCitations,
+              finalMarkdown: assembled,
               tokens: { input: inputTokens, output: outputTokens },
             }),
           ),
