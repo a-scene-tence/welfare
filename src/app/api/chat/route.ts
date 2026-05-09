@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
               allowedDomains: WEB_SEARCH_ALLOWED_DOMAINS,
             },
           ],
-          maxTokens: 2048,
+          maxTokens: 3500,
           temperature: 0.2,
           apiKey: byokKey,
         })) {

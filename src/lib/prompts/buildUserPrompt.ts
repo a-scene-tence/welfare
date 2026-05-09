@@ -73,7 +73,7 @@ ${kbSnippets}
 위 프로필에 맞춰 ① 중앙정부 ② ${region.sido} ③ ${region.sigungu} 3계층 혜택을 안내해 주세요.
 
 [검증 규칙 — 위반 시 환각으로 간주, 응답에서 해당 사업 삭제]
-- 각 사업은 web_search 결과에서 ${currentYear}년 또는 ${currentYear - 1}년 시행 정보를 본문으로 확인한 후 인용. 시행 연도가 확인 안 되면 안내 금지.
+- 각 사업은 web_search 결과에서 ${currentYear}년 또는 ${currentYear - 1}년 시행 정보를 본문으로 확인한 후 인용. 시행 연도가 확인 안 되면 안내 금지. 단, [사전 후보 메모(시드 KB)] 에 명시된 사업은 KB 자체의 frontmatter 정보(year, lastVerified)가 시행 연도 단서로 인정되며, web_search 결과에 ${currentYear}년 단서가 없어도 KB 의 「공식」 URL 을 인용해 안내 가능 (본문에 "최신 자격·공고는 KB 의 소관 기관 공식 사이트 또는 거주지 행정복지센터에서 확인 권장" 함께 표기).
 - ② 광역시도 사업: 다음 중 하나를 만족할 때만 안내. 둘 다 미충족이면 "② ${region.sido}: 확인된 사업 없음" 으로 명시.
   (a) "${region.sido}" 명칭 또는 그 영문 도메인이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있는 경우 → 그 URL 인용
   (b) [사전 후보 메모(시드 KB)] 에 ${region.sido} 사업으로 명시된 경우 → KB 의 「공식」 URL 인용 가능 (단, 본문에 "최신 자격·공고는 ${region.sido} 공식 사이트 또는 거주지 행정복지센터에서 확인 권장" 함께 표기)

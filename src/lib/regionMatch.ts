@@ -228,6 +228,14 @@ export function extractTierBlock(
     if (headingEnd < end) end = headingEnd;
   }
 
+  // LLM 이 "3. 다음 단계" 같은 평문 번호 헤딩을 사용하는 경우도 종료 마커로 인식.
+  // ① ② ③ 마커는 § 5 의 계층 분류를 위한 것이고, 1./2./3. 은 단계별 섹션.
+  const numberHeadingMatch = remaining.match(/\n\d+\.\s/);
+  if (numberHeadingMatch && numberHeadingMatch.index !== undefined) {
+    const numberEnd = idx + numberHeadingMatch.index;
+    if (numberEnd < end) end = numberEnd;
+  }
+
   return markdown.slice(idx, end);
 }
 
