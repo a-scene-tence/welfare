@@ -90,6 +90,7 @@ export class UpstageProvider implements LlmProvider {
     let totalOutputTokens = 0;
 
     for (let turn = 0; turn < maxSearches + 1; turn++) {
+      const isLastTurn = searchCount >= maxSearches;
       console.info(
         "[upstage] turn",
         turn,
@@ -99,11 +100,12 @@ export class UpstageProvider implements LlmProvider {
         searchCount,
         "messages",
         messages.length,
+        isLastTurn ? "(forced no-tool)" : "",
       );
       const body = {
         model: this.model,
         messages,
-        ...(tools ? { tools, tool_choice: "auto" as const } : {}),
+        ...(tools && !isLastTurn ? { tools, tool_choice: "auto" as const } : {}),
         max_tokens: req.maxTokens,
         temperature: req.temperature,
         stream: true,
@@ -144,6 +146,7 @@ export class UpstageProvider implements LlmProvider {
 
       const toolCalls: Map<number, { id: string; name: string; args: string }> = new Map();
       let finishReason: string | null = null;
+      let turnContentChars = 0;
 
       try {
         for await (const chunk of parseSseStream(res.body)) {
@@ -155,6 +158,7 @@ export class UpstageProvider implements LlmProvider {
           if (chunk.usage?.completion_tokens) totalOutputTokens = chunk.usage.completion_tokens;
 
           if (delta?.content) {
+            turnContentChars += delta.content.length;
             yield { type: "text_delta", text: delta.content };
           }
 
@@ -179,6 +183,18 @@ export class UpstageProvider implements LlmProvider {
         return;
       }
 
+      console.info(
+        "[upstage] turn",
+        turn,
+        "end",
+        "finishReason",
+        finishReason,
+        "contentChars",
+        turnContentChars,
+        "toolCallCount",
+        toolCalls.size,
+      );
+
       // 도구 호출 없이 종료 → 응답 완료
       if (finishReason !== "tool_calls" || toolCalls.size === 0) {
         yield {
@@ -188,8 +204,11 @@ export class UpstageProvider implements LlmProvider {
         return;
       }
 
-      // 검색 한도 초과 → 종료 (모델에게 추가 도구 호출 기회 없이 마무리)
-      if (searchCount >= maxSearches) {
+      // forced no-tool turn 이었는데도 tool_calls 로 종료된 비정상 케이스 → 강제 종료.
+      if (isLastTurn) {
+        console.warn(
+          "[upstage] forced no-tool turn returned tool_calls — terminating without further search",
+        );
         yield {
           type: "done",
           usage: { inputTokens: totalInputTokens, outputTokens: totalOutputTokens },
