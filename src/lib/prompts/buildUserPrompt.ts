@@ -73,13 +73,14 @@ ${kbSnippets}
 위 프로필에 맞춰 ① 중앙정부 ② ${region.sido} ③ ${region.sigungu} 3계층 혜택을 안내해 주세요.
 
 [검증 규칙 — 위반 시 환각으로 간주, 응답에서 해당 사업 삭제]
-- 각 사업은 web_search 결과에서 ${currentYear}년 또는 ${currentYear - 1}년 시행 정보를 본문으로 확인한 후 인용. 시행 연도가 확인 안 되면 안내 금지. 단, [사전 후보 메모(시드 KB)] 에 명시된 사업은 KB 자체의 frontmatter 정보(year, lastVerified)가 시행 연도 단서로 인정되며, web_search 결과에 ${currentYear}년 단서가 없어도 KB 의 「공식」 URL 을 인용해 안내 가능 (본문에 "최신 자격·공고는 KB 의 소관 기관 공식 사이트 또는 거주지 행정복지센터에서 확인 권장" 함께 표기).
+- 시드 KB 우선 인용 규칙: [사전 후보 메모(시드 KB)] 에 사업명·소관 기관·officialUrl·year·lastVerified 가 모두 명시된 사업은 KB 자체가 시행 연도 검증을 갈음합니다. web_search 결과에 ${currentYear}년 단서가 없더라도 안내를 보류하지 말고 KB 의 「공식」 URL 을 인용해 안내하세요. 본문에 "최신 자격·공고는 소관 기관 공식 사이트 또는 거주지 행정복지센터에서 확인 권장" 함께 표기.
+- 위 시드 KB 예외에 해당하지 않는 사업은 web_search 결과에서 ${currentYear}년 또는 ${currentYear - 1}년 시행 정보를 본문으로 확인한 후 인용. 시행 연도가 확인 안 되면 안내 금지.
 - ② 광역시도 사업: 다음 중 하나를 만족할 때만 안내. 둘 다 미충족이면 "② ${region.sido}: 확인된 사업 없음" 으로 명시.
-  (a) "${region.sido}" 명칭 또는 그 영문 도메인이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있는 경우 → 그 URL 인용
-  (b) [사전 후보 메모(시드 KB)] 에 ${region.sido} 사업으로 명시된 경우 → KB 의 「공식」 URL 인용 가능 (단, 본문에 "최신 자격·공고는 ${region.sido} 공식 사이트 또는 거주지 행정복지센터에서 확인 권장" 함께 표기)
+  (a) [사전 후보 메모(시드 KB)] 에 ${region.sido} 사업으로 명시된 경우 → KB 의 「공식」 URL 인용 (우선 적용 — KB 명시 사업은 시행 연도 확인 면제. 본문에 "최신 자격·공고는 ${region.sido} 공식 사이트 또는 거주지 행정복지센터에서 확인 권장" 함께 표기)
+  (b) "${region.sido}" 명칭 또는 그 영문 도메인이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있는 경우 → 그 URL 인용
 - ③ 기초자치단체 사업: 다음 중 하나를 만족할 때만 안내. 둘 다 미충족이면 "③ ${region.sigungu}: 확인된 사업 없음 — 거주지 행정복지센터 문의 권장" 명시. 다른 시·군·구 자료를 ${region.sigungu} 사업으로 일반화 금지.
-  (a) "${region.sigungu}" 명칭(한글 또는 로마자)이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있는 경우 → 그 URL 인용
-  (b) [사전 후보 메모(시드 KB)] 에 ${region.sigungu} 사업으로 명시된 경우 → KB 의 「공식」 URL 인용 가능 (단, 본문에 "최신 자격은 ${region.sigungu} 행정복지센터 또는 자치구 공식 사이트에서 확인 권장" 함께 표기)
+  (a) [사전 후보 메모(시드 KB)] 에 ${region.sigungu} 사업으로 명시된 경우 → KB 의 「공식」 URL 인용 (우선 적용 — KB 명시 사업은 시행 연도 확인 면제. 본문에 "최신 자격은 ${region.sigungu} 행정복지센터 또는 자치구 공식 사이트에서 확인 권장" 함께 표기). 시드 KB 명시 사업의 안내를 web_search 결과 부족 이유로 보류하지 마세요.
+  (b) "${region.sigungu}" 명칭(한글 또는 로마자)이 URL 호스트·경로에 포함된 출처가 web_search 결과에 있는 경우 → 그 URL 인용
 - 다른 시·도/시·군·구의 유사 사업명을 ${region.sido} ${region.sigungu} 사업으로 일반화·유추 금지.
 - 인용 URL 은 web_search 결과에 등장한 정확한 URL 또는 시드 KB 의 「공식」 URL 만 표기 (도메인·경로·쿼리·해시 변경 금지, URL 합성 금지).
 - ③ 계층 사업이 1차 검색으로 미확인이면 "${region.sido} ${region.sigungu} <사업명> ${currentYear}" 쿼리로 1회 이상 추가 검색 후 판단.

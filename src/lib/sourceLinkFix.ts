@@ -9,58 +9,74 @@
  * 기관명 텍스트를 markdown 링크로 변환.
  */
 
-const AGENCY_DOMAIN_MAP: Array<{ name: string; domains: string[] }> = [
+type AgencyEntry = {
+  name: string;
+  domains: string[];
+  fallbackUrl?: string;
+};
+
+const AGENCY_DOMAIN_MAP: AgencyEntry[] = [
   // 통합 복지 정보
-  { name: "국가법령정보센터", domains: ["law.go.kr"] },
-  { name: "공공데이터포털", domains: ["data.go.kr"] },
-  { name: "정책브리핑", domains: ["korea.kr"] },
-  { name: "복지로", domains: ["bokjiro.go.kr"] },
-  { name: "정부24", domains: ["gov.kr"] },
+  { name: "국가법령정보센터", domains: ["law.go.kr"], fallbackUrl: "https://www.law.go.kr/" },
+  { name: "공공데이터포털", domains: ["data.go.kr"], fallbackUrl: "https://www.data.go.kr/" },
+  { name: "정책브리핑", domains: ["korea.kr"], fallbackUrl: "https://www.korea.kr/" },
+  { name: "복지로", domains: ["bokjiro.go.kr"], fallbackUrl: "https://www.bokjiro.go.kr/" },
+  { name: "정부24", domains: ["gov.kr"], fallbackUrl: "https://www.gov.kr/" },
 
   // 중앙부처
-  { name: "보건복지부", domains: ["mohw.go.kr"] },
-  { name: "고용노동부", domains: ["moel.go.kr"] },
-  { name: "국토교통부", domains: ["molit.go.kr"] },
-  { name: "여성가족부", domains: ["mogef.go.kr"] },
-  { name: "농림축산식품부", domains: ["mafra.go.kr"] },
-  { name: "중소벤처기업부", domains: ["mss.go.kr"] },
-  { name: "교육부", domains: ["moe.go.kr"] },
-  { name: "행정안전부", domains: ["mois.go.kr"] },
-  { name: "금융위원회", domains: ["fsc.go.kr"] },
-  { name: "국세청", domains: ["nts.go.kr", "hometax.go.kr"] },
+  { name: "보건복지부", domains: ["mohw.go.kr"], fallbackUrl: "https://www.mohw.go.kr/" },
+  { name: "고용노동부", domains: ["moel.go.kr"], fallbackUrl: "https://www.moel.go.kr/" },
+  { name: "국토교통부", domains: ["molit.go.kr"], fallbackUrl: "https://www.molit.go.kr/" },
+  { name: "여성가족부", domains: ["mogef.go.kr"], fallbackUrl: "https://www.mogef.go.kr/" },
+  { name: "농림축산식품부", domains: ["mafra.go.kr"], fallbackUrl: "https://www.mafra.go.kr/" },
+  { name: "중소벤처기업부", domains: ["mss.go.kr"], fallbackUrl: "https://www.mss.go.kr/" },
+  { name: "교육부", domains: ["moe.go.kr"], fallbackUrl: "https://www.moe.go.kr/" },
+  { name: "행정안전부", domains: ["mois.go.kr"], fallbackUrl: "https://www.mois.go.kr/" },
+  { name: "금융위원회", domains: ["fsc.go.kr"], fallbackUrl: "https://www.fsc.go.kr/" },
+  { name: "국세청", domains: ["nts.go.kr", "hometax.go.kr"], fallbackUrl: "https://www.nts.go.kr/" },
 
   // 사업별 공식 사이트
-  { name: "기초연금 공식 사이트", domains: ["basicpension.mohw.go.kr"] },
-  { name: "주택도시기금 포털", domains: ["nhuf.molit.go.kr"] },
-  { name: "주택도시기금", domains: ["nhuf.molit.go.kr"] },
-  { name: "마이홈포털", domains: ["myhome.go.kr"] },
-  { name: "마이홈", domains: ["myhome.go.kr"] },
-  { name: "워크넷", domains: ["work24.go.kr", "work.go.kr"] },
-  { name: "온라인청년센터", domains: ["youthcenter.go.kr"] },
-  { name: "청년몽땅정보통", domains: ["youth.seoul.go.kr"] },
-  { name: "국민건강보험공단", domains: ["nhis.or.kr"] },
-  { name: "국민건강보험", domains: ["nhis.or.kr"] },
-  { name: "국민연금공단", domains: ["nps.or.kr"] },
-  { name: "한국노인인력개발원", domains: ["kordi.or.kr"] },
-  { name: "한국주택금융공사", domains: ["hf.go.kr"] },
-  { name: "한국토지주택공사", domains: ["lh.or.kr"] },
-  { name: "LH", domains: ["lh.or.kr"] },
-  { name: "홈택스", domains: ["hometax.go.kr"] },
-  { name: "국민취업지원제도", domains: ["work24.go.kr", "work.go.kr", "kua.go.kr"] },
-  { name: "기초연금", domains: ["basicpension.mohw.go.kr"] },
+  { name: "기초연금 공식 사이트", domains: ["basicpension.mohw.go.kr"], fallbackUrl: "https://basicpension.mohw.go.kr/" },
+  { name: "주택도시기금 포털", domains: ["nhuf.molit.go.kr"], fallbackUrl: "https://nhuf.molit.go.kr/" },
+  { name: "주택도시기금", domains: ["nhuf.molit.go.kr"], fallbackUrl: "https://nhuf.molit.go.kr/" },
+  { name: "마이홈포털", domains: ["myhome.go.kr"], fallbackUrl: "https://www.myhome.go.kr/" },
+  { name: "마이홈", domains: ["myhome.go.kr"], fallbackUrl: "https://www.myhome.go.kr/" },
+  { name: "워크넷", domains: ["work24.go.kr", "work.go.kr"], fallbackUrl: "https://www.work24.go.kr/" },
+  { name: "온라인청년센터", domains: ["youthcenter.go.kr"], fallbackUrl: "https://www.youthcenter.go.kr/" },
+  { name: "청년몽땅정보통", domains: ["youth.seoul.go.kr"], fallbackUrl: "https://youth.seoul.go.kr/" },
+  { name: "국민건강보험공단", domains: ["nhis.or.kr"], fallbackUrl: "https://www.nhis.or.kr/" },
+  { name: "국민건강보험", domains: ["nhis.or.kr"], fallbackUrl: "https://www.nhis.or.kr/" },
+  { name: "국민연금공단", domains: ["nps.or.kr"], fallbackUrl: "https://www.nps.or.kr/" },
+  { name: "한국노인인력개발원", domains: ["kordi.or.kr"], fallbackUrl: "https://www.kordi.or.kr/" },
+  { name: "한국주택금융공사", domains: ["hf.go.kr"], fallbackUrl: "https://www.hf.go.kr/" },
+  { name: "한국토지주택공사", domains: ["lh.or.kr"], fallbackUrl: "https://www.lh.or.kr/" },
+  { name: "LH", domains: ["lh.or.kr"], fallbackUrl: "https://www.lh.or.kr/" },
+  { name: "홈택스", domains: ["hometax.go.kr"], fallbackUrl: "https://www.hometax.go.kr/" },
+  { name: "국민취업지원제도", domains: ["work24.go.kr", "work.go.kr", "kua.go.kr"], fallbackUrl: "https://www.work24.go.kr/" },
+  { name: "기초연금", domains: ["basicpension.mohw.go.kr"], fallbackUrl: "https://basicpension.mohw.go.kr/" },
 
   // 광역시도
-  { name: "서울특별시", domains: ["seoul.go.kr"] },
-  { name: "서울주거포털", domains: ["housing.seoul.go.kr"] },
-  { name: "부산광역시", domains: ["busan.go.kr"] },
-  { name: "대구광역시", domains: ["daegu.go.kr"] },
-  { name: "인천광역시", domains: ["incheon.go.kr"] },
-  { name: "광주광역시청", domains: ["gwangju.go.kr"] },
-  { name: "광주광역시", domains: ["gwangju.go.kr"] },
-  { name: "대전광역시", domains: ["daejeon.go.kr"] },
-  { name: "울산광역시", domains: ["ulsan.go.kr"] },
-  { name: "세종특별자치시", domains: ["sejong.go.kr"] },
-  { name: "경기도", domains: ["gg.go.kr"] },
+  { name: "서울특별시", domains: ["seoul.go.kr"], fallbackUrl: "https://www.seoul.go.kr/" },
+  { name: "서울주거포털", domains: ["housing.seoul.go.kr"], fallbackUrl: "https://housing.seoul.go.kr/" },
+  { name: "부산광역시", domains: ["busan.go.kr"], fallbackUrl: "https://www.busan.go.kr/" },
+  { name: "대구광역시", domains: ["daegu.go.kr"], fallbackUrl: "https://www.daegu.go.kr/" },
+  { name: "인천광역시", domains: ["incheon.go.kr"], fallbackUrl: "https://www.incheon.go.kr/" },
+  { name: "광주광역시청", domains: ["gwangju.go.kr"], fallbackUrl: "https://www.gwangju.go.kr/" },
+  { name: "광주광역시", domains: ["gwangju.go.kr"], fallbackUrl: "https://www.gwangju.go.kr/" },
+  { name: "대전광역시", domains: ["daejeon.go.kr"], fallbackUrl: "https://www.daejeon.go.kr/" },
+  { name: "울산광역시", domains: ["ulsan.go.kr"], fallbackUrl: "https://www.ulsan.go.kr/" },
+  { name: "세종특별자치시", domains: ["sejong.go.kr"], fallbackUrl: "https://www.sejong.go.kr/" },
+  { name: "경기도", domains: ["gg.go.kr"], fallbackUrl: "https://www.gg.go.kr/" },
+
+  // 기초자치단체 (시·군·구) — KB 가 정의된 곳만 등록
+  { name: "노원구청", domains: ["nowon.kr"], fallbackUrl: "https://www.nowon.kr/" },
+  { name: "서울특별시 노원구", domains: ["nowon.kr"], fallbackUrl: "https://www.nowon.kr/" },
+  { name: "노원구", domains: ["nowon.kr"], fallbackUrl: "https://www.nowon.kr/" },
+  { name: "동래구청", domains: ["dongnae.go.kr"], fallbackUrl: "https://www.dongnae.go.kr/" },
+  { name: "부산광역시 동래구", domains: ["dongnae.go.kr"], fallbackUrl: "https://www.dongnae.go.kr/" },
+  { name: "동래구", domains: ["dongnae.go.kr"], fallbackUrl: "https://www.dongnae.go.kr/" },
+  { name: "동구청", domains: ["donggu.gwangju.kr"], fallbackUrl: "https://www.donggu.gwangju.kr/" },
+  { name: "광주광역시 동구", domains: ["donggu.gwangju.kr"], fallbackUrl: "https://www.donggu.gwangju.kr/" },
 ];
 
 // 긴 이름이 먼저 매칭되도록 정렬 (예: "광주광역시청" 이 "광주광역시" 보다 우선)
@@ -137,13 +153,19 @@ function transformTokens(
     if (!trimmed) return token;
     if (token.includes("](") || /^https?:\/\//i.test(trimmed)) return token;
 
-    for (const { name, domains } of SORTED_AGENCY_MAP) {
+    for (const { name, domains, fallbackUrl } of SORTED_AGENCY_MAP) {
       if (!token.includes(name)) continue;
       for (const domain of domains) {
         const url = findUrlForDomain(domainToUrl, domain);
         if (!url) continue;
         bumpReplaced();
         return token.replace(name, `[${name}](${url})`);
+      }
+      // 본문에 도메인 URL 이 없으면 화이트리스트 fallback URL 사용.
+      // LLM 이 "출처: 국토교통부" 같이 도메인 이름만 적은 경우 보완.
+      if (fallbackUrl) {
+        bumpReplaced();
+        return token.replace(name, `[${name}](${fallbackUrl})`);
       }
     }
     return token;

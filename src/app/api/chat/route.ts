@@ -27,6 +27,7 @@ import {
 } from "@/lib/regionMatch";
 import { findCentralProgramsInBlock } from "@/lib/centralPrograms";
 import { fixSourceLinks } from "@/lib/sourceLinkFix";
+import { stripUserSourcesSection } from "@/lib/stripSourcesSection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -241,6 +242,15 @@ export async function POST(req: NextRequest) {
           };
           assembled += DISCLAIMER_BLOCKQUOTE;
           controller.enqueue(encoder.encode(sse(disclaimerEvent)));
+        }
+
+        // §27 A: LLM 이 본문 끝에 직접 작성한 「참고한 공식 출처」 평문 섹션 제거.
+        // SourceCitations 컴포넌트가 done 이벤트 citations 배열로 동일 헤더를 자동
+        // 렌더링하므로 중복 방지.
+        const stripped = stripUserSourcesSection(assembled);
+        if (stripped.removed) {
+          assembled = stripped.result;
+          console.info("[chat] stripped user sources section");
         }
 
         // 1.7단계: 본문 후처리 — "출처: 도메인" 텍스트를 markdown 링크로 자동 재작성
