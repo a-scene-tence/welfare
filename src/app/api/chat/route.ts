@@ -152,7 +152,40 @@ export async function POST(req: NextRequest) {
           // citation 이벤트는 무시 — 1.5단계: 본문에서 직접 추출하므로
         }
 
-        // 1.5단계: 거주지 도메인 검증 (② 광역 / ③ 시·군·구)
+        // 응답 말미 면책 강제 추가
+        if (
+          !assembled.includes("보건복지상담센터") &&
+          !assembled.includes("129")
+        ) {
+          const disclaimerEvent = {
+            type: "text_delta",
+            text: DISCLAIMER_BLOCKQUOTE,
+          };
+          assembled += DISCLAIMER_BLOCKQUOTE;
+          controller.enqueue(encoder.encode(sse(disclaimerEvent)));
+        }
+
+        // §27 A: LLM 이 본문 끝에 직접 작성한 「참고한 공식 출처」 평문 섹션 제거.
+        // SourceCitations 컴포넌트가 done 이벤트 citations 배열로 동일 헤더를 자동
+        // 렌더링하므로 중복 방지.
+        const stripped = stripUserSourcesSection(assembled);
+        if (stripped.removed) {
+          assembled = stripped.result;
+          console.info("[chat] stripped user sources section");
+        }
+
+        // §27 B / 1.7단계: 본문 후처리 — "출처: 도메인" 텍스트를 markdown 링크로
+        // 자동 재작성. AGENCY_DOMAIN_MAP 의 fallback URL 도 적용되므로 본문에
+        // 도메인 URL 이 없어도 변환됨. § 29 Fix-1 에 따라 tier 검증보다 먼저 실행.
+        const linkFix = fixSourceLinks(assembled);
+        if (linkFix.replaced > 0) {
+          assembled = linkFix.result;
+          console.info("[chat] sourceLinkFix replaced", linkFix.replaced);
+        }
+
+        // §29 Fix-1: 거주지 도메인 검증 (② 광역 / ③ 시·군·구).
+        // fixSourceLinks 가 fallback URL 을 본문에 삽입한 후 검증해야 markdown
+        // 링크 변환 효과가 검증에 반영됨.
         const tier2Block = extractTierBlock(assembled, 2);
         if (tier2Block && !tierBlockIsEmpty(tier2Block)) {
           const tier2Urls = extractUrls(tier2Block);
@@ -196,7 +229,6 @@ export async function POST(req: NextRequest) {
         }
 
         // 1.7단계: 계층 중복 분류 검증 — ② ③ 블록에 중앙부처 사업명이 등장하면 자동 경고.
-        // (시스템 프롬프트 §5 계층 분류 규칙을 LLM 이 무시하는 사례 백업)
         const tier2BlockOverlap = extractTierBlock(assembled, 2);
         if (tier2BlockOverlap && !tierBlockIsEmpty(tier2BlockOverlap)) {
           const overlaps = findCentralProgramsInBlock(tier2BlockOverlap);
@@ -229,35 +261,6 @@ export async function POST(req: NextRequest) {
             assembled += warning;
             console.info(`[chat] tier3_central_overlap`, JSON.stringify(overlaps));
           }
-        }
-
-        // 응답 말미 면책 강제 추가
-        if (
-          !assembled.includes("보건복지상담센터") &&
-          !assembled.includes("129")
-        ) {
-          const disclaimerEvent = {
-            type: "text_delta",
-            text: DISCLAIMER_BLOCKQUOTE,
-          };
-          assembled += DISCLAIMER_BLOCKQUOTE;
-          controller.enqueue(encoder.encode(sse(disclaimerEvent)));
-        }
-
-        // §27 A: LLM 이 본문 끝에 직접 작성한 「참고한 공식 출처」 평문 섹션 제거.
-        // SourceCitations 컴포넌트가 done 이벤트 citations 배열로 동일 헤더를 자동
-        // 렌더링하므로 중복 방지.
-        const stripped = stripUserSourcesSection(assembled);
-        if (stripped.removed) {
-          assembled = stripped.result;
-          console.info("[chat] stripped user sources section");
-        }
-
-        // 1.7단계: 본문 후처리 — "출처: 도메인" 텍스트를 markdown 링크로 자동 재작성
-        const linkFix = fixSourceLinks(assembled);
-        if (linkFix.replaced > 0) {
-          assembled = linkFix.result;
-          console.info("[chat] sourceLinkFix replaced", linkFix.replaced);
         }
 
         // 1.5단계: citations 재구성 — 본문에서 인용된 화이트리스트 URL 만 표시
