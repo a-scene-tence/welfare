@@ -205,6 +205,7 @@ export async function POST(req: NextRequest) {
               `[chat] tier2_no_match sido=${profile.region.sido}`,
               `blockLen=${tier2Block.length}`,
               `urls=${tier2Urls.length}`,
+              `head=${JSON.stringify(tier2Block.slice(0, 120))}`,
             );
           }
         }
@@ -228,6 +229,7 @@ export async function POST(req: NextRequest) {
               `[chat] tier3_no_match sigungu=${profile.region.sigungu}`,
               `blockLen=${tier3Block.length}`,
               `urls=${tier3Urls.length}`,
+              `head=${JSON.stringify(tier3Block.slice(0, 120))}`,
             );
           }
         }

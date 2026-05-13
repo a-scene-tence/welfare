@@ -226,9 +226,16 @@ export function extractTierBlock(
 
   // LLM 이 "3. 다음 단계" 같은 평문 번호 헤딩을 사용하는 경우도 종료 마커로 인식.
   // ① ② ③ 마커는 § 5 의 계층 분류를 위한 것이고, 1./2./3. 은 단계별 섹션.
+  // §33 Fix-B: ② 블록 안에서 LLM 이 사업을 "1. 사업명" ordered list 로 작성하면
+  // ② 헤더 직후 \n\d+\.\s 가 매치되어 블록이 일찍 종료되는 회귀가 발생. 최소 거리
+  // 조건(200자) 으로 응답 끝 부근의 단계 헤딩만 종료 마커로 인식하도록 제한.
   const remaining = markdown.slice(idx);
   const numberHeadingMatch = remaining.match(/\n\d+\.\s/);
-  if (numberHeadingMatch && numberHeadingMatch.index !== undefined) {
+  if (
+    numberHeadingMatch &&
+    numberHeadingMatch.index !== undefined &&
+    numberHeadingMatch.index >= 200
+  ) {
     const numberEnd = idx + numberHeadingMatch.index;
     if (numberEnd < end) end = numberEnd;
   }
