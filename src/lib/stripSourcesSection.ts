@@ -11,7 +11,7 @@
  */
 
 const HEADER_RE =
-  /(?:^|\n)\s*(?:#+\s*)?(?:참고한\s*공식\s*출처|출처\s*목록|참고\s*출처|Sources)\s*[:：]?\s*\n/i;
+  /(?:^|\n)\s*(?:#+\s*)?(?:\*{1,2})?(?:참고한\s*공식\s*출처|출처\s*목록|참고\s*출처|Sources)(?:\*{1,2})?\s*[:：]?(?:\*{1,2})?\s*\n/i;
 
 export function stripUserSourcesSection(markdown: string): {
   result: string;

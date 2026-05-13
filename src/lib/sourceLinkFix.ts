@@ -127,13 +127,14 @@ function findUrlForDomain(
   return null;
 }
 
-// 「출처: <값>」 같은 단일행 라벨 + 값 매칭. 라벨 앞 글머리 기호·`**` 강조 허용.
+// 「출처: <값>」 같은 단일행 라벨 + 값 매칭. 라벨 앞 글머리 기호 허용.
+// `**출처:**` / `**출처**:` / `출처:` 등 markdown 강조 변형 모두 처리.
 const SOURCE_LINE_RE =
-  /^(\s*[-*]?\s*(?:\*\*)?(?:출처|신청\s*경로)(?:\*\*)?\s*[:：]\s*)(.+)$/;
+  /^(\s*[-*]?\s*(?:\*+)?(?:출처|신청\s*경로)(?:\*+)?\s*[:：](?:\*+)?\s*)(.+)$/;
 
 // 「출처:」 만 있고 값은 다음 줄(들)에 있는 multi-line 라벨 매칭.
 const SOURCE_LABEL_ONLY_RE =
-  /^\s*[-*]?\s*(?:\*\*)?(?:출처|신청\s*경로)(?:\*\*)?\s*[:：]\s*$/;
+  /^\s*[-*]?\s*(?:\*+)?(?:출처|신청\s*경로)(?:\*+)?\s*[:：](?:\*+)?\s*$/;
 
 // multi-line 시 값 라인 매칭. 들여쓰기 또는 sub-list 형태 (예: "  보건복지부 · 정책브리핑",
 // "- 보건복지부", "* 정책브리핑") 모두 처리.
@@ -153,19 +154,26 @@ function transformTokens(
     if (!trimmed) return token;
     if (token.includes("](") || /^https?:\/\//i.test(trimmed)) return token;
 
+    // 토큰 안의 markdown bold 강조(`**부산광역시**`) 제거 후 매칭.
+    const unbolded = token.replace(/\*+/g, "");
+
     for (const { name, domains, fallbackUrl } of SORTED_AGENCY_MAP) {
-      if (!token.includes(name)) continue;
+      if (!unbolded.includes(name)) continue;
       for (const domain of domains) {
         const url = findUrlForDomain(domainToUrl, domain);
         if (!url) continue;
         bumpReplaced();
-        return token.replace(name, `[${name}](${url})`);
+        return token.includes(name)
+          ? token.replace(name, `[${name}](${url})`)
+          : token.replace(/\*+/g, "").replace(name, `[${name}](${url})`);
       }
       // 본문에 도메인 URL 이 없으면 화이트리스트 fallback URL 사용.
       // LLM 이 "출처: 국토교통부" 같이 도메인 이름만 적은 경우 보완.
       if (fallbackUrl) {
         bumpReplaced();
-        return token.replace(name, `[${name}](${fallbackUrl})`);
+        return token.includes(name)
+          ? token.replace(name, `[${name}](${fallbackUrl})`)
+          : token.replace(/\*+/g, "").replace(name, `[${name}](${fallbackUrl})`);
       }
     }
     return token;
