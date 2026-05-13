@@ -220,16 +220,13 @@ export function extractTierBlock(
     if (nextSection !== -1) end = Math.min(end, nextSection);
   }
 
-  // 다음 H2 헤딩 (\n## ) 으로 경계 제한
-  const remaining = markdown.slice(idx);
-  const headingMatch = remaining.match(/\n##\s/);
-  if (headingMatch && headingMatch.index !== undefined) {
-    const headingEnd = idx + headingMatch.index;
-    if (headingEnd < end) end = headingEnd;
-  }
+  // §32 Fix-A: `\n## ` H2 헤딩 종료 마커는 제거. LLM 이 ② 블록 안에서 사업명을
+  // ## / ### H 헤딩으로 작성하는 패턴이 일반적이라 ② 블록을 첫 사업 시작 지점에서
+  // 일찍 종료시키는 회귀가 발생. ②③④ 마커 + 평문 번호 헤딩(\n\d+\.\s) 으로 충분.
 
   // LLM 이 "3. 다음 단계" 같은 평문 번호 헤딩을 사용하는 경우도 종료 마커로 인식.
   // ① ② ③ 마커는 § 5 의 계층 분류를 위한 것이고, 1./2./3. 은 단계별 섹션.
+  const remaining = markdown.slice(idx);
   const numberHeadingMatch = remaining.match(/\n\d+\.\s/);
   if (numberHeadingMatch && numberHeadingMatch.index !== undefined) {
     const numberEnd = idx + numberHeadingMatch.index;

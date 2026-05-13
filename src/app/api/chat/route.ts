@@ -203,6 +203,8 @@ export async function POST(req: NextRequest) {
             assembled += warning;
             console.info(
               `[chat] tier2_no_match sido=${profile.region.sido}`,
+              `blockLen=${tier2Block.length}`,
+              `urls=${tier2Urls.length}`,
             );
           }
         }
@@ -224,6 +226,8 @@ export async function POST(req: NextRequest) {
             assembled += warning;
             console.info(
               `[chat] tier3_no_match sigungu=${profile.region.sigungu}`,
+              `blockLen=${tier3Block.length}`,
+              `urls=${tier3Urls.length}`,
             );
           }
         }
