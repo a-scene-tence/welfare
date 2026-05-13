@@ -198,14 +198,31 @@ export function fixSourceLinks(markdown: string): {
     replaced++;
   };
   const lines = markdown.split("\n");
+  // §31 Fix-2: 매칭 진단 — "출처" 포함 라인 중 SOURCE_LINE_RE 매칭 실패한 첫
+  // 1~2 라인의 prefix 를 로그로 출력해 LLM 의 실제 출력 형식 파악.
+  let sourceLikeLines = 0;
+  let matchedLines = 0;
+  const unmatchedHints: string[] = [];
+  const containsSourceLabel = (s: string) => /(?:출처|신청\s*경로)/.test(s);
 
   for (let i = 0; i < lines.length; i++) {
+    if (containsSourceLabel(lines[i])) sourceLikeLines++;
+
     // (a) 같은 줄 value: "출처: 복지로 · 국토교통부"
     const single = lines[i].match(SOURCE_LINE_RE);
     if (single) {
+      matchedLines++;
       const newValue = transformTokens(single[2], domainToUrl, bumpReplaced);
       if (newValue !== single[2]) lines[i] = single[1] + newValue;
       continue;
+    }
+
+    if (
+      containsSourceLabel(lines[i]) &&
+      !SOURCE_LABEL_ONLY_RE.test(lines[i]) &&
+      unmatchedHints.length < 2
+    ) {
+      unmatchedHints.push(lines[i].slice(0, 80));
     }
 
     // (b) multi-line: 라벨만 있고 값은 다음 줄(들).
@@ -225,6 +242,20 @@ export function fixSourceLinks(markdown: string): {
       j++;
     }
     i = j - 1;
+  }
+
+  if (sourceLikeLines > 0) {
+    console.info(
+      "[sourceLinkFix] sourceLike",
+      sourceLikeLines,
+      "matched",
+      matchedLines,
+      "replaced",
+      replaced,
+      unmatchedHints.length > 0
+        ? `unmatched: ${JSON.stringify(unmatchedHints)}`
+        : "",
+    );
   }
 
   return { result: lines.join("\n"), replaced };

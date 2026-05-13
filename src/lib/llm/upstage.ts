@@ -252,6 +252,23 @@ export class UpstageProvider implements LlmProvider {
           continue;
         }
 
+        // §31 Fix-1: maxSearches 도달 시 나머지 tool_calls 는 더미 응답으로 처리.
+        // Solar Pro2 가 한 turn 에 여러 tool_calls 를 동시 emit 하는 경우 Tavily 비용
+        // 폭증 방지. LLM 은 다음 turn 의 forced no-tool 분기로 진입.
+        if (searchCount >= maxSearches) {
+          messages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content:
+              "[검색 한도 초과: 이 요청은 실행되지 않았습니다. 다음 turn 에서 텍스트로 응답하세요]",
+          });
+          console.info(
+            "[upstage] skip tool_call (over maxSearches)",
+            JSON.stringify(query),
+          );
+          continue;
+        }
+
         searchCount++;
         console.info("[upstage] tool_call web_search", JSON.stringify(query));
         yield { type: "tool_use", name: "web_search", input: { query } };
