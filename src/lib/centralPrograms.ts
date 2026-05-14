@@ -57,15 +57,23 @@ export const CENTRAL_PROGRAM_KEYWORDS: string[] = [
  * 텍스트 블록에서 중앙부처 사업명 키워드 등장 여부를 검사.
  *
  * 매칭 범위는 블록 첫 1500자. 블록 끝의 면책·경고 메시지에 false match 되는 것을
- * 차단하기 위함.
+ * 차단하기 위함. §35: 라인 단위 검사 + 광역·구 가산 부속 표기 라인 제외.
+ * 「부산 노인일자리 (광역 가산)」 같이 정당하게 ②③ 에 분류된 가산 사업명에
+ * 포함된 중앙 키워드("노인일자리" 등) 가 잘못 매칭되는 것을 차단.
  *
  * @returns 등장한 키워드 목록(중복 제거).
  */
+const SUFFIX_RE =
+  /\((광역\s*가산|구\s*가산|시\s*가산|특별시\s*가산|자치구\s*가산)\)/;
+
 export function findCentralProgramsInBlock(block: string): string[] {
   const head = block.slice(0, 1500);
   const found = new Set<string>();
-  for (const keyword of CENTRAL_PROGRAM_KEYWORDS) {
-    if (head.includes(keyword)) found.add(keyword);
+  for (const line of head.split("\n")) {
+    if (SUFFIX_RE.test(line)) continue;
+    for (const keyword of CENTRAL_PROGRAM_KEYWORDS) {
+      if (line.includes(keyword)) found.add(keyword);
+    }
   }
   return Array.from(found);
 }
