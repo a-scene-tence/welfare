@@ -69,18 +69,23 @@ const SUFFIX_RE =
 export function findCentralProgramsInBlock(block: string): string[] {
   const head = block.slice(0, 1500);
   const found = new Set<string>();
-  // §38 Fix-B: 사업 블록 단위 skip. 사업명 라인이 SUFFIX_RE 매치 시 그 사업의
-  // 후속 라인(자격·혜택·신청 시기 등) 도 함께 skip — 가산 사업의 혜택 라인에
-  // 자연 등장하는 중앙 사업명 키워드가 false positive 일으키지 않도록.
-  const NEW_PROGRAM_RE = /^\s*(?:\d+\.\s|[①②③④]|[*-]\s)/;
+  // §38 Fix-B / §41 unit test 반영: 사업 블록 단위 skip.
+  // SUFFIX_RE 매치 라인 (가산 사업명) → skip 활성화 + 그 라인 자체도 skip.
+  // NEW_PROGRAM_RE 매치 + SUFFIX_RE 미매치 라인 (정상 사업 시작) → skip 해제.
+  // 사업명 라인 형식이 단순 텍스트(번호 없이 시작) 인 경우도 처리.
+  const NEW_PROGRAM_RE = /^\s*(?:\d+\.\s|[①②③④]|[*-]\s|#+\s)/;
   let skipUntilNextProgram = false;
   for (const line of head.split("\n")) {
+    if (SUFFIX_RE.test(line)) {
+      // 가산 사업명 라인 — 이 사업의 후속 라인 모두 skip
+      skipUntilNextProgram = true;
+      continue;
+    }
     if (NEW_PROGRAM_RE.test(line)) {
-      skipUntilNextProgram = SUFFIX_RE.test(line);
-      if (skipUntilNextProgram) continue;
+      // 새 사업 시작 (가산 아님) — skip 해제하고 라인 검사 진행
+      skipUntilNextProgram = false;
     }
     if (skipUntilNextProgram) continue;
-    if (SUFFIX_RE.test(line)) continue;
     for (const keyword of CENTRAL_PROGRAM_KEYWORDS) {
       if (line.includes(keyword)) found.add(keyword);
     }

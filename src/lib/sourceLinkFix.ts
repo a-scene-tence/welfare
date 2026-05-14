@@ -190,8 +190,9 @@ export function fixSourceLinks(markdown: string): {
   result: string;
   replaced: number;
 } {
+  // domainToUrl 이 비어 있어도 AGENCY_DOMAIN_MAP 의 fallback URL 로 변환 가능하므로
+  // early return 하지 않고 진행.
   const domainToUrl = buildDomainToUrl(markdown);
-  if (domainToUrl.size === 0) return { result: markdown, replaced: 0 };
 
   let replaced = 0;
   const bumpReplaced = () => {

@@ -28,6 +28,7 @@ import {
 import { findCentralProgramsInBlock } from "@/lib/centralPrograms";
 import { fixSourceLinks } from "@/lib/sourceLinkFix";
 import { stripUserSourcesSection } from "@/lib/stripSourcesSection";
+import { dedupDuplicateSummary } from "@/lib/dedupSummary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -152,23 +153,13 @@ export async function POST(req: NextRequest) {
           // citation 이벤트는 무시 — 1.5단계: 본문에서 직접 추출하므로
         }
 
-        // §36: turn 0 에서 LLM 이 text + tool_calls 동시 emit 시 turn 1 의 응답이
-        // 처음부터 다시 작성되어 본문 중복. "1. 자격 요약" 헤더가 두 번 이상
-        // 등장하면 두 번째 헤더부터 응답 끝까지만 유지 (turn 1 의 tool 기반 응답이
-        // 더 정확).
-        // §37: `\n` 시작 anchor → `(?:^|\n)` 로 응답 시작 위치도 매치. 첫 번째
-        // "1. 자격 요약" 이 응답 본문의 첫 글자인 경우 §36 정규식이 매치 못함.
-        const summaryHeaderRe = /(?:^|\n)(?:#+\s*)?(?:\*{1,2})?1\.\s*자격\s*요약/g;
-        const summaryMatches = [...assembled.matchAll(summaryHeaderRe)];
-        if (
-          summaryMatches.length >= 2 &&
-          summaryMatches[1].index !== undefined
-        ) {
-          const removed = summaryMatches[1].index;
-          assembled = assembled.slice(removed).replace(/^\s*\n+/, "");
+        // §36 / §37: 응답 본문 중복 (turn 0 + turn 1) 제거. dedupSummary 모듈 분리.
+        const dedup = dedupDuplicateSummary(assembled);
+        if (dedup.removed > 0) {
+          assembled = dedup.result;
           console.info(
             "[chat] dedup_duplicate_summary removed",
-            removed,
+            dedup.removed,
             "newLen",
             assembled.length,
           );
