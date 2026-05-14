@@ -224,18 +224,13 @@ export function extractTierBlock(
   // ## / ### H 헤딩으로 작성하는 패턴이 일반적이라 ② 블록을 첫 사업 시작 지점에서
   // 일찍 종료시키는 회귀가 발생. ②③④ 마커 + 평문 번호 헤딩(\n\d+\.\s) 으로 충분.
 
-  // LLM 이 "3. 다음 단계" 같은 평문 번호 헤딩을 사용하는 경우도 종료 마커로 인식.
-  // ① ② ③ 마커는 § 5 의 계층 분류를 위한 것이고, 1./2./3. 은 단계별 섹션.
-  // §33 Fix-B: ② 블록 안에서 LLM 이 사업을 "1. 사업명" ordered list 로 작성하면
-  // ② 헤더 직후 \n\d+\.\s 가 매치되어 블록이 일찍 종료되는 회귀가 발생. 최소 거리
-  // 조건(200자) 으로 응답 끝 부근의 단계 헤딩만 종료 마커로 인식하도록 제한.
+  // §34: "3. 다음 단계" 처럼 단계 헤딩만 종료 마커로 인식.
+  // §33 의 거리 조건 200자는 ③ 블록이 "다음 단계" 섹션을 흡수하면서 그 안의
+  // 중앙 사업명(버팀목·기초연금 등) 이 _central_overlap false positive 를 일으킴.
+  // ② 블록 안의 "1. 사업명" ordered list 는 "다음 단계" 가 아니므로 매치 안 됨.
   const remaining = markdown.slice(idx);
-  const numberHeadingMatch = remaining.match(/\n\d+\.\s/);
-  if (
-    numberHeadingMatch &&
-    numberHeadingMatch.index !== undefined &&
-    numberHeadingMatch.index >= 200
-  ) {
+  const numberHeadingMatch = remaining.match(/\n\d+\.\s*다음\s*단계/);
+  if (numberHeadingMatch && numberHeadingMatch.index !== undefined) {
     const numberEnd = idx + numberHeadingMatch.index;
     if (numberEnd < end) end = numberEnd;
   }
