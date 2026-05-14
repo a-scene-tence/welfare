@@ -270,7 +270,12 @@ export async function POST(req: NextRequest) {
               encoder.encode(sse({ type: "text_delta", text: warning })),
             );
             assembled += warning;
-            console.info(`[chat] tier2_central_overlap`, JSON.stringify(overlaps));
+            console.info(
+              `[chat] tier2_central_overlap`,
+              JSON.stringify(overlaps),
+              `blockLen=${tier2BlockOverlap.length}`,
+              `tail=${JSON.stringify(tier2BlockOverlap.slice(-150))}`,
+            );
           }
         }
 
@@ -287,7 +292,12 @@ export async function POST(req: NextRequest) {
               encoder.encode(sse({ type: "text_delta", text: warning })),
             );
             assembled += warning;
-            console.info(`[chat] tier3_central_overlap`, JSON.stringify(overlaps));
+            console.info(
+              `[chat] tier3_central_overlap`,
+              JSON.stringify(overlaps),
+              `blockLen=${tier3BlockOverlap.length}`,
+              `tail=${JSON.stringify(tier3BlockOverlap.slice(-150))}`,
+            );
           }
         }
 

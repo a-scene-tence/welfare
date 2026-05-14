@@ -69,7 +69,17 @@ const SUFFIX_RE =
 export function findCentralProgramsInBlock(block: string): string[] {
   const head = block.slice(0, 1500);
   const found = new Set<string>();
+  // §38 Fix-B: 사업 블록 단위 skip. 사업명 라인이 SUFFIX_RE 매치 시 그 사업의
+  // 후속 라인(자격·혜택·신청 시기 등) 도 함께 skip — 가산 사업의 혜택 라인에
+  // 자연 등장하는 중앙 사업명 키워드가 false positive 일으키지 않도록.
+  const NEW_PROGRAM_RE = /^\s*(?:\d+\.\s|[①②③④]|[*-]\s)/;
+  let skipUntilNextProgram = false;
   for (const line of head.split("\n")) {
+    if (NEW_PROGRAM_RE.test(line)) {
+      skipUntilNextProgram = SUFFIX_RE.test(line);
+      if (skipUntilNextProgram) continue;
+    }
+    if (skipUntilNextProgram) continue;
     if (SUFFIX_RE.test(line)) continue;
     for (const keyword of CENTRAL_PROGRAM_KEYWORDS) {
       if (line.includes(keyword)) found.add(keyword);
