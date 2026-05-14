@@ -152,6 +152,26 @@ export async function POST(req: NextRequest) {
           // citation 이벤트는 무시 — 1.5단계: 본문에서 직접 추출하므로
         }
 
+        // §36: turn 0 에서 LLM 이 text + tool_calls 동시 emit 시 turn 1 의 응답이
+        // 처음부터 다시 작성되어 본문 중복. "1. 자격 요약" 헤더가 두 번 이상
+        // 등장하면 두 번째 헤더부터 응답 끝까지만 유지 (turn 1 의 tool 기반 응답이
+        // 더 정확).
+        const summaryHeaderRe = /\n(?:#+\s*)?(?:\*{1,2})?1\.\s*자격\s*요약/g;
+        const summaryMatches = [...assembled.matchAll(summaryHeaderRe)];
+        if (
+          summaryMatches.length >= 2 &&
+          summaryMatches[1].index !== undefined
+        ) {
+          const removed = summaryMatches[1].index;
+          assembled = assembled.slice(removed).replace(/^\s*\n+/, "");
+          console.info(
+            "[chat] dedup_duplicate_summary removed",
+            removed,
+            "newLen",
+            assembled.length,
+          );
+        }
+
         // 응답 말미 면책 강제 추가
         if (
           !assembled.includes("보건복지상담센터") &&
