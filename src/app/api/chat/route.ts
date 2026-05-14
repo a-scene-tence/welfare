@@ -156,7 +156,9 @@ export async function POST(req: NextRequest) {
         // 처음부터 다시 작성되어 본문 중복. "1. 자격 요약" 헤더가 두 번 이상
         // 등장하면 두 번째 헤더부터 응답 끝까지만 유지 (turn 1 의 tool 기반 응답이
         // 더 정확).
-        const summaryHeaderRe = /\n(?:#+\s*)?(?:\*{1,2})?1\.\s*자격\s*요약/g;
+        // §37: `\n` 시작 anchor → `(?:^|\n)` 로 응답 시작 위치도 매치. 첫 번째
+        // "1. 자격 요약" 이 응답 본문의 첫 글자인 경우 §36 정규식이 매치 못함.
+        const summaryHeaderRe = /(?:^|\n)(?:#+\s*)?(?:\*{1,2})?1\.\s*자격\s*요약/g;
         const summaryMatches = [...assembled.matchAll(summaryHeaderRe)];
         if (
           summaryMatches.length >= 2 &&
