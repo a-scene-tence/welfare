@@ -229,7 +229,9 @@ export function extractTierBlock(
   // 중앙 사업명(버팀목·기초연금 등) 이 _central_overlap false positive 를 일으킴.
   // ② 블록 안의 "1. 사업명" ordered list 는 "다음 단계" 가 아니므로 매치 안 됨.
   const remaining = markdown.slice(idx);
-  const numberHeadingMatch = remaining.match(/\n\d+\.\s*다음\s*단계/);
+  // §39: H 헤딩 prefix (### 3. 다음 단계 등) 도 매치 — LLM 이 markdown H 헤딩으로
+  // 작성한 경우 §34 의 기존 정규식이 매치 못해 ③ 블록이 응답 EOF 까지 흡수됨.
+  const numberHeadingMatch = remaining.match(/\n(?:#+\s*)?\d+\.\s*다음\s*단계/);
   if (numberHeadingMatch && numberHeadingMatch.index !== undefined) {
     const numberEnd = idx + numberHeadingMatch.index;
     if (numberEnd < end) end = numberEnd;
