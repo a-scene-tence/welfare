@@ -43,7 +43,7 @@ export type Region = z.infer<typeof RegionSchema>;
 
 export const HouseholdSchema = z.object({
   size: z.number().int().min(1).max(10),
-  monthlyIncomeKRW: z.number().int().min(0).max(100_000_000),
+  annualIncomeKRW: z.number().int().min(0).max(1_000_000_000),
   assetsKRW: z.number().int().min(0).max(10_000_000_000).optional(),
 });
 
@@ -52,7 +52,7 @@ export const MaritalSchema = z.discriminatedUnion("status", [
   z.object({
     status: z.literal("married"),
     spouseAge: z.number().int().min(0).max(120),
-    spouseMonthlyIncomeKRW: z.number().int().min(0).max(100_000_000),
+    spouseAnnualIncomeKRW: z.number().int().min(0).max(1_000_000_000),
   }),
 ]);
 export type Marital = z.infer<typeof MaritalSchema>;

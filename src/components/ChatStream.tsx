@@ -20,6 +20,7 @@ type Props = {
 export function ChatStream({ profile, byokKey }: Props) {
   const [text, setText] = useState("");
   const [citations, setCitations] = useState<string[]>([]);
+  const [searchCount, setSearchCount] = useState(0);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
@@ -27,7 +28,6 @@ export function ChatStream({ profile, byokKey }: Props) {
   useEffect(() => {
     if (startedRef.current) return;
     startedRef.current = true;
-    const controller = new AbortController();
 
     (async () => {
       try {
@@ -35,7 +35,6 @@ export function ChatStream({ profile, byokKey }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ profile, messages: [], byokKey }),
-          signal: controller.signal,
         });
         if (!resp.ok) {
           const errBody = await resp.json().catch(() => ({ error: "응답 오류" }));
@@ -66,9 +65,16 @@ export function ChatStream({ profile, byokKey }: Props) {
                 setText((prev) => prev + ev.text);
               } else if (ev.type === "citation" && typeof ev.url === "string") {
                 setCitations((prev) => [...prev, ev.url]);
+              } else if (ev.type === "tool_use") {
+                setSearchCount((prev) => prev + 1);
               } else if (ev.type === "error") {
                 setError(ev.message ?? "오류 발생");
               } else if (ev.type === "done") {
+                // 1.7단계: 서버가 본문 후처리(markdown 링크 변환) 결과를 finalMarkdown
+                // 으로 보내면 누적 텍스트를 통째로 교체. 짧은 깜빡임은 수용.
+                if (typeof ev.finalMarkdown === "string") {
+                  setText(ev.finalMarkdown);
+                }
                 if (Array.isArray(ev.citations)) {
                   setCitations((prev) => Array.from(new Set([...prev, ...ev.citations])));
                 }
@@ -81,13 +87,14 @@ export function ChatStream({ profile, byokKey }: Props) {
         }
         setDone(true);
       } catch (err) {
-        if ((err as Error).name === "AbortError") return;
         setError((err as Error).message ?? "네트워크 오류");
         setDone(true);
       }
     })();
 
-    return () => controller.abort();
+    // 의도적으로 cleanup 없음. startedRef 가 단일 실행 보장.
+    // 사용자가 페이지 이탈 시 fetch 는 백그라운드 종료까지 실행되며,
+    // unmounted 컴포넌트 setState 는 React 18+ 에서 무해 no-op.
   }, [profile, byokKey]);
 
   return (
@@ -101,9 +108,14 @@ export function ChatStream({ profile, byokKey }: Props) {
             {text}
           </ReactMarkdown>
         ) : (
-          <p className="text-sm text-[var(--muted)]">
-            공식 출처를 검색해 답변을 준비하고 있습니다. 잠시만 기다려 주세요…
-          </p>
+          <div className="text-sm text-[var(--muted)] space-y-1">
+            <p>공식 출처를 검색해 답변을 준비하고 있습니다. 잠시만 기다려 주세요…</p>
+            {searchCount > 0 && (
+              <p className="text-xs">
+                웹 검색 {searchCount}회 진행 중 · 응답 시작까지 최대 30~60초 소요될 수 있습니다.
+              </p>
+            )}
+          </div>
         )}
         {!done && text && (
           <p className="text-xs text-[var(--muted)] mt-2">응답 작성 중…</p>

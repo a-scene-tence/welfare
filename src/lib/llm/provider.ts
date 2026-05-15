@@ -42,6 +42,6 @@ export type StreamRequest = {
 };
 
 export interface LlmProvider {
-  readonly name: "anthropic" | "openai" | "gemini";
+  readonly name: "anthropic" | "openai" | "gemini" | "upstage";
   streamChat(req: StreamRequest): AsyncIterable<StreamEvent>;
 }

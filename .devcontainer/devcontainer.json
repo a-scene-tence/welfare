@@ -1,0 +1,38 @@
+{
+  "name": "welfare-agent",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "postCreateCommand": "sudo corepack enable && corepack prepare pnpm@10.33.0 --activate && pnpm install",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "Next.js Dev Server",
+      "onAutoForward": "openBrowser"
+    }
+  },
+  "remoteEnv": {
+    "LLM_PROVIDER": "${localEnv:LLM_PROVIDER:upstage}",
+    "UPSTAGE_API_KEY": "${localEnv:UPSTAGE_API_KEY}",
+    "UPSTAGE_MODEL": "${localEnv:UPSTAGE_MODEL:solar-pro2}",
+    "TAVILY_API_KEY": "${localEnv:TAVILY_API_KEY}",
+    "SUPABASE_URL": "${localEnv:SUPABASE_URL}",
+    "SUPABASE_SERVICE_ROLE_KEY": "${localEnv:SUPABASE_SERVICE_ROLE_KEY}"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "typescript.tsdk": "node_modules/typescript/lib"
+      }
+    }
+  },
+  "remoteUser": "node"
+}

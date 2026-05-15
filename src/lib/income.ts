@@ -32,6 +32,15 @@ export function medianIncomePercentile(
 }
 
 /**
+ * 연 총급여를 월 환산 (÷12, 정수 반올림). 기준 중위소득 비교용.
+ * 연 단위 입력이지만 보건복지부 「기준 중위소득」 고시는 월 단위이므로 환산이 필요.
+ */
+export function annualToMonthly(annualKRW: number): number {
+  if (annualKRW <= 0) return 0;
+  return Math.round(annualKRW / 12);
+}
+
+/**
  * 백분율 분위 라벨링 — 사업 자격 기준에서 자주 쓰이는 절단점.
  */
 export function incomeBracketLabel(percent: number): string {

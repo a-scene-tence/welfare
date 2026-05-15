@@ -16,16 +16,17 @@
 - 3-소스 교차 검증 + 모호 시 129 안내 강제
 - 가구원수·합산 소득 → 기준 중위소득 % 자동 계산
 - 입력값 비저장(서버 메모리만), 동의 시 비식별 처리 후 30일 보관
-- 공급자 비종속(Anthropic/OpenAI/Gemini 어댑터, ENV로 스왑)
+- 공급자 비종속(Upstage/Anthropic/OpenAI/Gemini 어댑터, ENV로 스왑)
 - 앱인토스(App-in-Toss) 미니앱 호환을 고려한 가벼운 번들과 외부 링크 어댑터
 
 ## 기술 스택
 
 - Next.js 15 App Router · TypeScript · Tailwind CSS
-- Anthropic Claude API (1차 구현, web_search 도구 + prompt caching)
+- LLM: **Upstage Solar**(기본, 한국어 특화·무료 티어) / Anthropic Claude / OpenAI / Gemini
+- 웹 검색: Anthropic은 네이티브 `web_search`, 그 외 공급자는 Tavily(무료 1000회/월) function tool
 - Zod · react-hook-form · react-markdown(rehype-sanitize)
 - 배포: Vercel(Hobby, 한국 리전 `icn1`)
-- (선택) Vercel Postgres — opt-in 비식별 대화 이력 저장
+- (선택) Supabase — opt-in 비식별 대화 이력 저장 (30일 TTL, RLS 활성)
 
 ## 디렉터리
 
@@ -51,30 +52,71 @@ src/
    ├─ programs/central/*.md   # 중앙정부 핵심 사업 큐레이션 KB
    ├─ regions.json
    └─ median-income.json
+
+db/
+├─ schema.sql                 # Supabase 테이블·RLS 스키마
+└─ README.md                  # Supabase 셋업 절차
 ```
 
 ## 로컬 실행
 
+### 옵션 A: GitHub Codespaces (브라우저, iPad 가능) — 권장
+
+저장소 페이지 → **Code** → **Codespaces** → **Create codespace**.
+Node.js·pnpm·git이 미리 설치되어 있고, 시크릿(`UPSTAGE_API_KEY` 등)은
+[GitHub Codespaces 시크릿](https://github.com/settings/codespaces)에 등록 시
+자동 주입된다. 자세한 절차는 [`.devcontainer/README.md`](.devcontainer/README.md).
+
+### 옵션 B: 로컬 머신
+
 ```bash
 pnpm install
 cp .env.example .env.local
-# 최소 ANTHROPIC_API_KEY=sk-ant-... 입력
+# .env.local 편집 (절대 .env.example에 실제 키 넣지 말 것):
+#   LLM_PROVIDER=upstage
+#   UPSTAGE_API_KEY=up-...        # https://console.upstage.ai → API Keys
+#   TAVILY_API_KEY=tvly-...       # (권장) https://app.tavily.com → API Keys
+#   SUPABASE_URL=...              # (선택) Supabase 로깅용
+#   SUPABASE_SERVICE_ROLE_KEY=... # (선택) Supabase 로깅용
 pnpm dev
 # http://localhost:3000
 ```
 
 타입 검사: `pnpm typecheck` · 빌드: `pnpm build` · 번들 분석: `pnpm analyze`
 
+### LLM 공급자 선택
+
+| 공급자 | 한국어 | 비용 | 웹 검색 | 비고 |
+|---|---|---|---|---|
+| **Upstage Solar** (기본) | ⭐⭐⭐⭐ | 무료 티어(`solar-pro2`) | Tavily function tool | OpenAI 호환, console.upstage.ai 가입 |
+| Anthropic Claude | ⭐⭐⭐⭐⭐ | 유료 | 네이티브 `web_search_20250305` | prompt caching 30~50% 절감 |
+| OpenAI / Gemini | — | — | — | 어댑터 stub만 (미구현) |
+
+ENV `LLM_PROVIDER`로 스왑. Upstage 사용 시 `TAVILY_API_KEY`가 없으면 시드 KB만으로 응답하며 응답에 「최신성 확인 필요」가 명시된다.
+
 ## Vercel 배포
 
 1. GitHub에 푸시 후 Vercel에서 Import.
 2. Framework: Next.js (자동 감지). Region: `icn1 (Seoul)`.
 3. Environment Variables(Production+Preview):
-   - `LLM_PROVIDER=anthropic`
-   - `ANTHROPIC_API_KEY=sk-ant-...`
-   - `ANTHROPIC_MODEL=claude-sonnet-4-5` (선택)
-   - `DATABASE_URL=...` (opt-in 로그 활성화 시)
+   - **Upstage(기본)**: `LLM_PROVIDER=upstage` · `UPSTAGE_API_KEY=up-...` · `UPSTAGE_MODEL=solar-pro2` · `TAVILY_API_KEY=tvly-...`
+   - **Anthropic(대안)**: `LLM_PROVIDER=anthropic` · `ANTHROPIC_API_KEY=sk-ant-...` · `ANTHROPIC_MODEL=claude-sonnet-4-5`
+   - **(선택) Supabase**: `SUPABASE_URL=...` · `SUPABASE_SERVICE_ROLE_KEY=...` — opt-in 로그 활성화 시. 셋업: `db/README.md` 참고
 4. Deploy 클릭. `vercel.json`에서 `/api/chat` 함수 `maxDuration=60`s 가 설정되어 있다.
+
+### Supabase 데이터 저장 (선택)
+
+opt-in 동의자 비식별 대화를 30일 TTL로 보존하려면:
+
+1. https://supabase.com → New Project (Northeast Asia/Seoul 또는 Singapore)
+2. Settings → API → `Project URL` + `service_role` 키 복사
+3. SQL Editor에서 [`db/schema.sql`](db/schema.sql) 실행 — 테이블 2개 + RLS 활성
+4. (선택) `pg_cron` 확장 활성 후 `db/schema.sql` 내 cron 블록 주석 해제로 일일 만료 정리
+5. `.env.local`/Vercel ENV에 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` 입력
+
+미설정 시 `recordMetric`/`recordConsentLog`는 stdout 로그만 남기고 서비스는 정상 동작.
+
+자세한 절차·운영 SQL은 [`db/README.md`](db/README.md) 참고.
 
 ## 앱인토스(App-in-Toss) 게시 (Phase 2)
 
