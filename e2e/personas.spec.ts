@@ -64,6 +64,34 @@ function countOccurrences(haystack: string, needle: RegExp): number {
   return (haystack.match(needle) ?? []).length;
 }
 
+/**
+ * §49 진단 헬퍼: ⚠ 라인 + 주변 컨텍스트 추출 (실패 시 console.log).
+ * LLM 비결정성으로 가끔 발생하는 회귀 케이스를 향후 회귀 진단에 즉시 사용.
+ */
+function collectWarningContext(md: string): string[] {
+  const lines = md.split("\n");
+  const result: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/⚠\s*\*?\*?자동 검증 경고/.test(lines[i])) {
+      // 직전 라인 + 매치 라인 + 직후 2 라인 추출 (가산 표기 / 사업명 컨텍스트)
+      const start = Math.max(0, i - 1);
+      const end = Math.min(lines.length, i + 3);
+      result.push(lines.slice(start, end).map((l) => `    ${l}`).join("\n"));
+    }
+  }
+  return result;
+}
+
+function findSummaryHeaders(md: string): string[] {
+  const re = /(?:^|\n)((?:#+\s*)?(?:\*{1,2})?1\.\s*자격\s*요약[^\n]*)/g;
+  const out: string[] = [];
+  let m;
+  while ((m = re.exec(md)) !== null) {
+    out.push(m[1]);
+  }
+  return out;
+}
+
 for (const persona of PERSONAS) {
   test(`${persona.name} - 회귀 metric 통과`, async ({ baseURL }) => {
     test.setTimeout(180_000);
@@ -71,14 +99,32 @@ for (const persona of PERSONAS) {
 
     const md = done.finalMarkdown;
 
+    // §49 진단 보조: 실패 시 사용자가 actual 응답을 즉시 볼 수 있도록 metric 별 prefix 로그.
+    const warningCount = countOccurrences(md, /⚠\s*\*?\*?자동 검증 경고/g);
+    if (warningCount > 0) {
+      const warnings = collectWarningContext(md);
+      console.log(
+        `\n[${persona.name}] ⚠ count=${warningCount}, context (line ±):\n` +
+          warnings.join("\n  ---\n") +
+          "\n",
+      );
+    }
+    const summaryHeaders = findSummaryHeaders(md);
+    if (summaryHeaders.length !== 1) {
+      console.log(
+        `\n[${persona.name}] summary headers=${summaryHeaders.length}: ` +
+          JSON.stringify(summaryHeaders),
+      );
+    }
+
     // 1. 응답 본문이 비어 있지 않음 (§24 빈 응답 본문 버그 회귀 차단)
     expect(md.length).toBeGreaterThan(1500);
 
     // 2. ⚠ 자동 검증 경고 0건 (모든 tier 검증 통과)
-    expect(countOccurrences(md, /⚠\s*\*?\*?자동 검증 경고/g)).toBe(0);
+    expect(warningCount).toBe(0);
 
     // 3. "1. 자격 요약" 1회만 등장 (§36/§37 응답 중복 차단)
-    expect(countOccurrences(md, /(?:^|\n)(?:#+\s*)?(?:\*{1,2})?1\.\s*자격\s*요약/g)).toBe(1);
+    expect(summaryHeaders.length).toBe(1);
 
     // 4. 본문에 markdown 링크 6개 이상
     expect(countOccurrences(md, /\[[^\]]+\]\(https?:\/\/[^)]+\)/g)).toBeGreaterThanOrEqual(6);
