@@ -1,0 +1,20 @@
+# Vercel build optimization — 다음 파일·디렉토리는 build context 에 포함 안 됨.
+
+# Test artifacts (Vitest + Playwright)
+e2e/
+src/__tests__/
+test-results/
+playwright-report/
+playwright/.cache/
+coverage/
+
+# CI / dev only
+.github/
+.claude/
+
+# Editor
+.vscode/
+.idea/
+
+# Local plan / scratch
+*.local
