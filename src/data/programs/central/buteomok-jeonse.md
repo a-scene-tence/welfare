@@ -8,10 +8,10 @@ applyUrl:
   online: https://nhuf.molit.go.kr
   offline: 우리은행·국민은행·신한은행·농협·기업은행 등 수탁은행
 eligibility:
-  incomePercentile: 100
-year: 2025
-lastVerified: 2025-12-15
-staleAfter: 2026-06-30
+  situations: ["newlywed", "pregnant", "infant", "parent"]
+year: 2026
+lastVerified: 2026-05-18
+staleAfter: 2026-12-31
 amountKRW:
   unit: once
 ---

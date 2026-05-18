@@ -14,9 +14,8 @@ applyUrl:
   offline: 협약 은행 영업점
 eligibility:
   ageMin: 19
-  incomePercentile: 200
   households: ["couple"]
-  situations: ["newlywed"]
+  situations: ["newlywed", "pregnant", "infant", "parent"]
 year: 2026
 lastVerified: 2026-05-08
 staleAfter: 2026-12-31
