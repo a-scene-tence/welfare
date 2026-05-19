@@ -67,6 +67,16 @@ const AGENCY_DOMAIN_MAP: AgencyEntry[] = [
   { name: "울산광역시", domains: ["ulsan.go.kr"], fallbackUrl: "https://www.ulsan.go.kr/" },
   { name: "세종특별자치시", domains: ["sejong.go.kr"], fallbackUrl: "https://www.sejong.go.kr/" },
   { name: "경기도", domains: ["gg.go.kr"], fallbackUrl: "https://www.gg.go.kr/" },
+  { name: "강원특별자치도", domains: ["gangwon.go.kr", "provin.gangwon.kr"], fallbackUrl: "https://www.gangwon.go.kr/" },
+  { name: "강원도", domains: ["gangwon.go.kr", "provin.gangwon.kr"], fallbackUrl: "https://www.gangwon.go.kr/" },
+  { name: "충청북도", domains: ["chungbuk.go.kr"], fallbackUrl: "https://www.chungbuk.go.kr/" },
+  { name: "충청남도", domains: ["chungnam.go.kr"], fallbackUrl: "https://www.chungnam.go.kr/" },
+  { name: "전북특별자치도", domains: ["jeonbuk.go.kr"], fallbackUrl: "https://www.jeonbuk.go.kr/" },
+  { name: "전라북도", domains: ["jeonbuk.go.kr"], fallbackUrl: "https://www.jeonbuk.go.kr/" },
+  { name: "전라남도", domains: ["jeonnam.go.kr"], fallbackUrl: "https://www.jeonnam.go.kr/" },
+  { name: "경상북도", domains: ["gb.go.kr"], fallbackUrl: "https://www.gb.go.kr/" },
+  { name: "경상남도", domains: ["gyeongnam.go.kr"], fallbackUrl: "https://www.gyeongnam.go.kr/" },
+  { name: "제주특별자치도", domains: ["jeju.go.kr"], fallbackUrl: "https://www.jeju.go.kr/" },
 
   // 기초자치단체 (시·군·구) — KB 가 정의된 곳만 등록
   { name: "노원구청", domains: ["nowon.kr"], fallbackUrl: "https://www.nowon.kr/" },
