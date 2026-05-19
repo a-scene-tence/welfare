@@ -2,8 +2,11 @@ export const metadata = { title: "개인정보 처리방침 — 복지매칭" };
 
 export default function PrivacyPage() {
   return (
-    <article className="prose-welfare space-y-3 text-sm leading-7">
-      <h1 className="text-xl font-bold">개인정보 처리방침</h1>
+    <article className="prose-welfare space-y-5 text-sm leading-7">
+      <p className="eyebrow">Privacy</p>
+      <h1 className="font-display text-2xl md:text-4xl font-black tracking-tight leading-tight text-[color:var(--ink)]">
+        개인정보 처리방침
+      </h1>
       <p>
         본 서비스는 정부 공식 채널이 아닌, 일반 대중을 위한 복지 안내 도구입니다. 사용자의
         개인정보를 최소한으로 처리하기 위해 다음과 같이 수집·이용합니다.

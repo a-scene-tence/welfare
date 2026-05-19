@@ -13,6 +13,12 @@ const config: Config = {
           "Roboto",
           "sans-serif",
         ],
+        display: [
+          "Pretendard",
+          "Inter",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       colors: {
         brand: {
@@ -21,6 +27,14 @@ const config: Config = {
         },
         surface: "var(--surface)",
         muted: "var(--muted)",
+        ink: "var(--ink)",
+        "ink-soft": "var(--ink-soft)",
+        line: "var(--line)",
+        accent: "var(--accent)",
+        bg: "var(--bg)",
+      },
+      letterSpacing: {
+        widest2: "0.2em",
       },
     },
   },

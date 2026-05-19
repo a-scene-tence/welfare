@@ -31,20 +31,25 @@ export default function ChatPage() {
   }, [router]);
 
   if (!profile) {
-    return <p className="text-sm text-[var(--muted)]">불러오는 중…</p>;
+    return (
+      <p className="text-sm text-[color:var(--muted)]">불러오는 중…</p>
+    );
   }
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <button
         onClick={() => router.push("/")}
-        className="text-sm text-[var(--muted)] underline"
+        className="text-xs uppercase tracking-widest2 text-[color:var(--muted)] hover:text-[color:var(--ink)] transition-colors"
       >
-        ← 입력 다시하기
+        ← Back · 입력 다시하기
       </button>
-      <div className="rounded-md bg-white border border-[var(--border)] p-3 text-sm">
-        <strong>요청 요약</strong> · {profile.region.sido} {profile.region.sigungu} ·{" "}
-        {profile.age}세 · 가구원 {profile.household.size}명 ·{" "}
-        {profile.marital.status === "married" ? "결혼" : "미혼/1인"}
+      <div className="border-t border-b border-[color:var(--line)] py-4 text-sm">
+        <p className="eyebrow mb-2">Request</p>
+        <p className="text-[color:var(--ink)]">
+          {profile.region.sido} {profile.region.sigungu} · {profile.age}세 ·
+          가구원 {profile.household.size}명 ·{" "}
+          {profile.marital.status === "married" ? "결혼" : "미혼/1인"}
+        </p>
       </div>
       <ChatStream profile={profile} byokKey={byokKey} />
     </div>

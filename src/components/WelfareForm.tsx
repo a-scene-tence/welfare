@@ -17,6 +17,10 @@ type RegionState = {
   sigunguCode: string;
 };
 
+/** 모노톤·언더라인 입력 공통 클래스. */
+export const UNDERLINE_INPUT =
+  "w-full border-0 border-b border-[color:var(--line)] bg-transparent px-0 py-3 text-base rounded-none focus:outline-none focus:border-[color:var(--ink)] transition-colors";
+
 export function WelfareForm() {
   const router = useRouter();
   const [region, setRegion] = useState<RegionState>({
@@ -72,8 +76,8 @@ export function WelfareForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <section className="space-y-3">
+    <form onSubmit={onSubmit} className="space-y-10">
+      <section>
         <RegionSelect
           sidoCode={region.sidoCode}
           sigunguCode={region.sigunguCode}
@@ -81,27 +85,33 @@ export function WelfareForm() {
         />
       </section>
 
-      <section className="grid grid-cols-2 gap-2">
+      <section className="grid grid-cols-2 gap-6">
         <label className="block">
-          <span className="block text-sm font-medium mb-1">본인 나이</span>
+          <span className="eyebrow block">Age</span>
+          <span className="block text-sm font-medium mt-1 text-[color:var(--ink)]">
+            본인 나이
+          </span>
           <input
             type="number"
             min={0}
             max={120}
             value={age || ""}
             onChange={(e) => setAge(Number(e.target.value) || 0)}
-            className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-base"
+            className={UNDERLINE_INPUT}
           />
         </label>
         <label className="block">
-          <span className="block text-sm font-medium mb-1">자녀 수</span>
+          <span className="eyebrow block">Children</span>
+          <span className="block text-sm font-medium mt-1 text-[color:var(--ink)]">
+            자녀 수
+          </span>
           <input
             type="number"
             min={0}
             max={10}
             value={childrenCount}
             onChange={(e) => setChildrenCount(Number(e.target.value) || 0)}
-            className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-base"
+            className={UNDERLINE_INPUT}
           />
         </label>
       </section>
@@ -128,7 +138,8 @@ export function WelfareForm() {
 
       <section>
         <label className="block">
-          <span className="block text-sm font-medium mb-1">
+          <span className="eyebrow block">Free text</span>
+          <span className="block text-sm font-medium mt-1 text-[color:var(--ink)]">
             추가 질문 / 특별한 상황 (선택, 500자 이내)
           </span>
           <textarea
@@ -137,9 +148,9 @@ export function WelfareForm() {
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
             placeholder="예: 최근 실직했고 임차 보증금 마련이 어렵습니다."
-            className="w-full rounded-md border border-[var(--border)] bg-white px-3 py-2 text-base"
+            className={`${UNDERLINE_INPUT} resize-none`}
           />
-          <span className="block text-xs text-[var(--muted)] mt-1">
+          <span className="block text-xs text-[color:var(--muted)] mt-2">
             전화번호·주민번호·계좌번호 등은 입력하지 마세요. 입력 시 자동 마스킹됩니다.
           </span>
         </label>
@@ -154,7 +165,7 @@ export function WelfareForm() {
       <ApiKeyInput value={byokKey} onChange={setByokKey} />
 
       {error && (
-        <p className="text-sm text-[color:var(--danger,#f04452)] bg-red-50 border border-red-200 rounded-md p-2">
+        <p className="text-sm text-[color:var(--danger,#c4302b)] border-l-2 border-[color:var(--danger,#c4302b)] pl-3 py-1">
           {error}
         </p>
       )}
@@ -162,9 +173,9 @@ export function WelfareForm() {
       <button
         type="submit"
         disabled={!consent.disclaimer}
-        className="w-full rounded-lg bg-[var(--brand)] text-white font-semibold py-3 disabled:bg-gray-300"
+        className="w-full bg-[color:var(--ink)] text-white py-4 text-xs tracking-widest2 uppercase font-medium border border-[color:var(--ink)] rounded-none transition-colors hover:bg-white hover:text-[color:var(--ink)] disabled:bg-[color:var(--line)] disabled:border-[color:var(--line)] disabled:text-[color:var(--muted)] disabled:cursor-not-allowed disabled:hover:bg-[color:var(--line)] disabled:hover:text-[color:var(--muted)]"
       >
-        받을 수 있는 복지 혜택 찾기
+        Match welfare programs · 복지 혜택 찾기
       </button>
     </form>
   );

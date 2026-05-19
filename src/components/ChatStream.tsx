@@ -98,8 +98,8 @@ export function ChatStream({ profile, byokKey }: Props) {
   }, [profile, byokKey]);
 
   return (
-    <div className="space-y-4">
-      <article className="prose-welfare bg-white border border-[var(--border)] rounded-lg p-4">
+    <div className="space-y-6">
+      <article className="prose-welfare bg-transparent border-t border-[color:var(--line)] pt-6">
         {text ? (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
@@ -108,8 +108,11 @@ export function ChatStream({ profile, byokKey }: Props) {
             {text}
           </ReactMarkdown>
         ) : (
-          <div className="text-sm text-[var(--muted)] space-y-1">
-            <p>공식 출처를 검색해 답변을 준비하고 있습니다. 잠시만 기다려 주세요…</p>
+          <div className="text-sm text-[color:var(--muted)] space-y-2">
+            <p className="eyebrow">Searching</p>
+            <p>
+              공식 출처를 검색해 답변을 준비하고 있습니다. 잠시만 기다려 주세요…
+            </p>
             {searchCount > 0 && (
               <p className="text-xs">
                 웹 검색 {searchCount}회 진행 중 · 응답 시작까지 최대 30~60초 소요될 수 있습니다.
@@ -118,14 +121,16 @@ export function ChatStream({ profile, byokKey }: Props) {
           </div>
         )}
         {!done && text && (
-          <p className="text-xs text-[var(--muted)] mt-2">응답 작성 중…</p>
+          <p className="text-xs text-[color:var(--muted)] mt-3 tracking-widest2 uppercase">
+            Streaming…
+          </p>
         )}
       </article>
 
       <SourceCitations citations={citations} />
 
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm">
+        <div className="border-l-2 border-[color:var(--danger,#c4302b)] pl-3 py-1 text-sm text-[color:var(--danger,#c4302b)]">
           오류: {error}
         </div>
       )}
