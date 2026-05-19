@@ -59,6 +59,7 @@ export const ALLOWED_DOMAINS: string[] = [
   "gyeongnam.go.kr",
   "jeju.go.kr",
   "provin.gangwon.kr",
+  "gangwon.go.kr",
 ];
 
 export const SYSTEM_PROMPT_KO = `
