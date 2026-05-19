@@ -10,9 +10,9 @@ export function SourceCitations({ citations }: Props) {
   if (!citations.length) return null;
   const unique = Array.from(new Set(citations));
   return (
-    <div className="mt-4 text-sm">
-      <h3 className="font-semibold mb-1">참고한 공식 출처</h3>
-      <ul className="list-disc pl-5 space-y-0.5">
+    <div className="border-t border-[color:var(--line)] pt-5 text-sm">
+      <p className="eyebrow mb-3">Sources · 참고한 공식 출처</p>
+      <ul className="space-y-2">
         {unique.map((url) => (
           <li key={url}>
             <a
@@ -21,7 +21,7 @@ export function SourceCitations({ citations }: Props) {
                 e.preventDefault();
                 openExternal(url);
               }}
-              className="break-all"
+              className="break-all text-[color:var(--ink)]"
             >
               {url}
             </a>

@@ -2,8 +2,11 @@ export const metadata = { title: "서비스 소개 — 복지매칭" };
 
 export default function AboutPage() {
   return (
-    <article className="prose-welfare space-y-4 text-sm leading-7">
-      <h1 className="text-xl font-bold">서비스 소개</h1>
+    <article className="prose-welfare space-y-5 text-sm leading-7">
+      <p className="eyebrow">About</p>
+      <h1 className="font-display text-2xl md:text-4xl font-black tracking-tight leading-tight text-[color:var(--ink)]">
+        서비스 소개
+      </h1>
       <p>
         「복지매칭」은 거주 지역·나이·가구 소득·결혼/가구 상황을 바탕으로 받을 수 있는 공공
         복지 혜택을 한곳에서 안내하는 도우미입니다. 중앙정부·광역시도·시·군·구의 3계층을

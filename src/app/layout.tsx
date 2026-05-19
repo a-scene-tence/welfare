@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Link from "next/link";
 import "./globals.css";
 import { DisclaimerFooter } from "@/components/DisclaimerFooter";
 
@@ -18,7 +19,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#3182f6",
+  themeColor: "#111111",
 };
 
 export default function RootLayout({
@@ -29,19 +30,42 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <div className="mx-auto max-w-2xl px-4 py-6 safe-bottom">
-          <header className="mb-6">
-            <a
-              href="/"
-              className="text-xl font-bold text-[color:var(--brand)] no-underline"
-            >
-              복지매칭
-            </a>
-            <p className="text-sm text-[color:var(--muted)] mt-1">
-              내가 받을 수 있는 공공 복지 혜택을 한 번에
+        <div className="mx-auto max-w-3xl px-6 md:px-10 py-8 safe-bottom">
+          <header className="border-b border-[color:var(--line)] pb-7">
+            <Link href="/" className="block no-underline">
+              <p className="eyebrow">Korea Public Welfare Matcher</p>
+              <h1 className="font-display text-3xl md:text-5xl font-black tracking-tight mt-2 leading-[1.05] text-[color:var(--ink)]">
+                복지매칭
+              </h1>
+            </Link>
+            <p className="text-sm text-[color:var(--muted)] mt-3">
+              내가 받을 수 있는 공공 복지 혜택을 한 번에.
             </p>
+            <nav className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-[11px] uppercase tracking-widest2 text-[color:var(--muted)]">
+              <Link href="/" className="no-underline hover:text-[color:var(--ink)]">
+                Home
+              </Link>
+              <Link
+                href="/about"
+                className="no-underline hover:text-[color:var(--ink)]"
+              >
+                About
+              </Link>
+              <Link
+                href="/privacy"
+                className="no-underline hover:text-[color:var(--ink)]"
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                className="no-underline hover:text-[color:var(--ink)]"
+              >
+                Terms
+              </Link>
+            </nav>
           </header>
-          <main>{children}</main>
+          <main className="mt-10">{children}</main>
           <DisclaimerFooter />
         </div>
       </body>

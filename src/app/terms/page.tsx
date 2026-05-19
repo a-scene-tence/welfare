@@ -4,8 +4,11 @@ export const metadata = { title: "이용약관·면책 — 복지매칭" };
 
 export default function TermsPage() {
   return (
-    <article className="prose-welfare space-y-3 text-sm leading-7">
-      <h1 className="text-xl font-bold">이용약관 · 면책 사항</h1>
+    <article className="prose-welfare space-y-5 text-sm leading-7">
+      <p className="eyebrow">Terms</p>
+      <h1 className="font-display text-2xl md:text-4xl font-black tracking-tight leading-tight text-[color:var(--ink)]">
+        이용약관 · 면책 사항
+      </h1>
       <p>
         「복지매칭」(이하 “서비스”)은 일반 대중에게 공공 복지 정보를 안내하는 비공식 도구이며,
         대한민국 정부의 공식 서비스가 아닙니다.

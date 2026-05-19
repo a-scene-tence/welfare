@@ -3,17 +3,25 @@
 @tailwind utilities;
 
 :root {
-  --brand: #3182f6;
-  --brand-fg: #ffffff;
+  /* W컨셉 풍 모노톤 + 다크 액센트 토큰 */
+  --ink: #111111;
+  --ink-soft: #2a2a2a;
+  --muted: #6b6b6b;
+  --line: #e6e6e6;
   --surface: #ffffff;
-  --muted: #4e5968;
-  --border: #e5e8eb;
+  --bg: #fafafa;
+  --accent: #2a2a3a;
+
+  /* 호환성 alias — 기존 var(--brand) / var(--border) 사용처 보존 */
+  --brand: var(--ink);
+  --brand-fg: #ffffff;
+  --border: var(--line);
 }
 
 html,
 body {
-  background: #f7f8fa;
-  color: #191f28;
+  background: var(--bg);
+  color: var(--ink);
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
     "Helvetica Neue", "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR",
     "Malgun Gothic", sans-serif;
@@ -37,31 +45,48 @@ button {
 }
 
 a {
-  color: var(--brand);
-  text-decoration: none;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.15s ease;
 }
 
 a:hover {
-  text-decoration: underline;
+  text-decoration-color: var(--ink);
 }
 
-/* 마크다운 응답 스타일 */
+/* 영문 uppercase 부제용 utility */
+.eyebrow {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* 마크다운 응답 스타일 — W컨셉 풍 에디토리얼 */
 .prose-welfare h2 {
-  font-size: 18px;
-  font-weight: 700;
-  margin-top: 1.5rem;
-  margin-bottom: 0.5rem;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 2rem;
+  margin-bottom: 0.6rem;
+  color: var(--ink);
 }
 .prose-welfare h3 {
-  font-size: 16px;
-  font-weight: 600;
-  margin-top: 1rem;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.005em;
+  margin-top: 1.5rem;
   margin-bottom: 0.4rem;
+  color: var(--ink);
 }
 .prose-welfare p,
 .prose-welfare li {
   font-size: 15px;
-  line-height: 1.6;
+  line-height: 1.75;
+  color: var(--ink);
 }
 .prose-welfare ul {
   list-style: disc;
@@ -71,23 +96,37 @@ a:hover {
   list-style: decimal;
   padding-left: 1.25rem;
 }
+.prose-welfare a {
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+.prose-welfare a:hover {
+  text-decoration-color: var(--ink);
+}
 .prose-welfare blockquote {
-  border-left: 3px solid var(--border);
-  padding-left: 0.75rem;
+  border-left: 2px solid var(--ink);
+  padding-left: 1rem;
   color: var(--muted);
-  margin: 0.75rem 0;
+  margin: 1rem 0;
+  font-style: normal;
 }
 .prose-welfare table {
   border-collapse: collapse;
   width: 100%;
   font-size: 14px;
-  margin: 0.75rem 0;
+  margin: 1rem 0;
 }
 .prose-welfare th,
 .prose-welfare td {
-  border: 1px solid var(--border);
-  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 0.6rem;
   text-align: left;
+}
+.prose-welfare th {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
 }
 
 /* 안전 영역(앱인토스 WebView 대비) */
