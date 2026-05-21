@@ -1,0 +1,82 @@
+name: KB staleAfter audit (weekly)
+
+on:
+  schedule:
+    # 매주 월요일 09:00 KST (UTC 00:00 월)
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run KB audit (and capture summary)
+        id: audit
+        run: |
+          set +e
+          pnpm kb:audit | tee audit.md
+          echo "exit=$?" >> $GITHUB_OUTPUT
+          cat audit.md >> $GITHUB_STEP_SUMMARY
+          # 본 워크플로는 expired 가 없어도 warning 이 있으면 issue 를 열어야 하므로
+          # 항상 0 으로 종료시키고 후속 step 에서 warning 검출.
+          exit 0
+
+      - name: Open or comment issue on expired/warning
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('audit.md', 'utf8');
+            const hasExpired = /^- Expired: \*\*([1-9][0-9]*)\*\*/m.test(body);
+            const hasWarning = /^- Warning .*: \*\*([1-9][0-9]*)\*\*/m.test(body);
+            if (!hasExpired && !hasWarning) {
+              core.info("No expired or warning KBs. Skipping issue.");
+              return;
+            }
+            const today = new Date().toISOString().slice(0, 10);
+            const title = hasExpired
+              ? `KB audit: 만료 KB 발견 (${today})`
+              : `KB audit: 갱신 임박 KB 발견 (${today})`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'kb-audit',
+            });
+            if (issues.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body,
+              });
+              core.info(`Commented on existing issue #${issues[0].number}`);
+            } else {
+              const { data: created } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['kb-audit'],
+              });
+              core.info(`Opened new issue #${created.number}`);
+            }

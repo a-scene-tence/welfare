@@ -36,3 +36,6 @@ jobs:
         env:
           # 빌드는 ENV 없이도 통과해야 함 (런타임에만 키 필요)
           NEXT_PUBLIC_TARGET: web
+
+      - name: KB staleAfter audit
+        run: pnpm kb:audit

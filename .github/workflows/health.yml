@@ -1,0 +1,94 @@
+name: Production health check
+
+on:
+  schedule:
+    # 매일 09:00 KST (UTC 00:00)
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check PRODUCTION_URL variable
+        id: precheck
+        run: |
+          if [ -z "${{ vars.PRODUCTION_URL }}" ]; then
+            echo "::warning::PRODUCTION_URL variable is not set. Skipping health check."
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Curl /api/health
+        if: steps.precheck.outputs.skip != 'true'
+        id: health
+        run: |
+          set +e
+          url="${{ vars.PRODUCTION_URL }}/api/health"
+          echo "URL: $url"
+          response=$(curl -sS -m 15 -w "\n%{http_code}" "$url")
+          curl_exit=$?
+          body=$(echo "$response" | sed '$d')
+          status=$(echo "$response" | tail -n 1)
+          echo "status=$status" >> $GITHUB_OUTPUT
+          echo "url=$url" >> $GITHUB_OUTPUT
+          {
+            echo "body<<EOF"
+            echo "$body"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          if [ "$curl_exit" != "0" ] || [ "$status" != "200" ]; then
+            exit 1
+          fi
+
+      - name: Open or comment issue on health failure
+        if: failure() && steps.precheck.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = `${{ steps.health.outputs.url }}`;
+            const status = `${{ steps.health.outputs.status }}`;
+            const body = `${{ steps.health.outputs.body }}`;
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `Production health 실패 (${today})`;
+            const issueBody = [
+              `\`${url}\` 헬스체크 실패.`,
+              ``,
+              `- HTTP status: \`${status || 'n/a'}\``,
+              `- Run: ${run}`,
+              ``,
+              `\`\`\``,
+              body || '(empty body)',
+              `\`\`\``,
+              ``,
+              `Vercel Logs 또는 Supabase / Upstage / Tavily 상태를 확인하세요.`,
+            ].join("\n");
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'health-failure',
+            });
+            if (issues.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body: issueBody,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: issueBody,
+                labels: ['health-failure'],
+              });
+            }

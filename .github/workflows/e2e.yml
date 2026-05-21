@@ -6,6 +6,10 @@ on:
     # 매일 한국 시간 04:00 (UTC 19:00) — 야간 회귀 점검
     - cron: "0 19 * * *"
 
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   e2e:
     name: P1·P2·P3 회귀 metric 검증
@@ -40,3 +44,42 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 14
+
+      - name: Open or comment issue on E2E failure
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const today = new Date().toISOString().slice(0, 10);
+            const title = `E2E nightly 실패 (${today})`;
+            const body = [
+              `nightly E2E (P1·P2·P3 회귀) 가 실패했습니다.`,
+              ``,
+              `- Run: ${run}`,
+              `- Artifact: 위 run 의 \`playwright-report\` 다운로드 → \`index.html\` 열어 실패 spec 확인.`,
+              ``,
+              `회귀 분석 시 \`claude.md\` §11 의 진단 로그 가이드와 \`src/lib/regionMatch.ts\`, \`centralPrograms.ts\`, \`sourceLinkFix.ts\` 의 후처리 로직 점검 권장.`,
+            ].join("\n");
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'e2e-failure',
+            });
+            if (issues.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues[0].number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: ['e2e-failure'],
+              });
+            }

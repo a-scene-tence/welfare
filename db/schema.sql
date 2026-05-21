@@ -49,10 +49,14 @@ create index if not exists welfare_consent_log_created_idx
 alter table public.welfare_consent_log enable row level security;
 
 -- ============================================================================
--- 3. (선택) 30일 만료 자동 정리 — pg_cron 활성 시 주석 해제 후 실행
+-- 3. (선택) 30일 만료 자동 정리 — pg_cron
 -- ============================================================================
--- Supabase 무료 티어에서도 pg_cron 사용 가능 (Database → Extensions → pg_cron).
--- 매일 새벽 3시(UTC) 만료된 행 삭제. 시간대는 UTC 기준이므로 한국시 12시(정오)에 실행됨.
+-- 활성 절차 (Supabase Dashboard):
+--   1. Database → Extensions → "pg_cron" 검색 → Enable
+--   2. 아래 두 라인의 주석 해제 후 이 블록 (또는 schema.sql 전체) 재실행
+--   3. db/verify-cron.sql 로 활성·실행 이력 확인
+--
+-- 매일 새벽 3시(UTC) 만료된 행 삭제. 한국시 정오(12:00 KST)에 실행됨.
 --
 -- create extension if not exists pg_cron;
 -- select cron.schedule(
@@ -60,9 +64,6 @@ alter table public.welfare_consent_log enable row level security;
 --   '0 3 * * *',
 --   $$delete from public.welfare_consent_log where expires_at < now()$$
 -- );
---
--- 활성 cron 확인: select * from cron.job;
--- 실행 이력:     select * from cron.job_run_details order by start_time desc limit 20;
 
 -- ============================================================================
 -- 4. 동의 철회용 삭제 함수 (선택) — 사용자 본인이 session_id 알 때 호출
