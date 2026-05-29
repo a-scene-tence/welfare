@@ -1,9 +1,6 @@
-name: Production health check
+name: Production health check (manual)
 
 on:
-  schedule:
-    # 매일 09:00 KST (UTC 00:00)
-    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
